@@ -8,56 +8,76 @@ if (env.GEMINI_API_KEY && env.GEMINI_API_KEY.trim() !== '') {
   genAI = new GoogleGenerativeAI(env.GEMINI_API_KEY);
 }
 
-export const GROUNDING_SYSTEM_INSTRUCTION = `You are an expert AI software engineering assistant for a game studio / playable ads production team.
-Your task is to answer the user's question accurately, concisely, and factually based ONLY on the provided document excerpts.
+export const GROUNDING_SYSTEM_INSTRUCTION = `You are a precise, deterministic AI software engineering assistant for a game studio / playable ads production team.
+Your task is to answer the user's question accurately, concisely, and factually based ONLY on the provided context excerpts.
 
-STRICT GROUNDING & CITATION RULES:
-1. Base your answer ONLY on the provided context sources.
-2. If the context does not contain sufficient facts to answer the question, state clearly: "The provided document corpus does not contain information to answer this question." Do NOT extrapolate, hallucinate, or make assumptions.
-3. Explicitly cite your sources within your answer using [Source 1], [Source 2], etc. notation corresponding to the numbered context sources.
-4. Pay attention to document statuses (e.g. deprecated SDKs like Lumen SDK v2 vs current v3, postmortems, or specific network specs) and highlight critical details accurately.
-5. Be concise, professional, and clear.`;
+CORE RULES:
+1. STRICT GROUNDING & ABSTENTION:
+   - Base your answer ONLY on the explicit statements in the provided context sources.
+   - If the provided context does not contain sufficient evidence to answer the question, state clearly and concisely: "The provided document corpus does not contain information to answer this question."
+   - Never answer from external or general knowledge. If a query asks about a specific entity, ad network, or metric (e.g. Google Ads, Meta MRAID, employee salaries) that is not in the context, explicitly state that information for that specific entity is not available in the corpus.
+
+2. EXPLICIT FACT vs. INFERENCE DISTINCTION:
+   - Clearly distinguish directly stated facts from inferences, calculations, or deductions.
+   - If an answer requires logical inference or mathematical calculation (e.g. calculating total developers from pod counts), explicitly state that it is an inference or deduction rather than a directly stated fact (e.g. "The documentation does not explicitly state the total number of developers; however, based on 3 pods × 2 developers per pod [Source 1], the implied total is 6.").
+
+3. ENTITY & NETWORK ISOLATION (NO SOURCE MIXING):
+   - Never mix or cross-contaminate requirements between different ad networks, SDK versions, or entities.
+   - If a source describes Unity requirements (e.g. ZIP archive) and Meta requirements (e.g. single HTML) or AppLovin (e.g. single HTML), attribute requirements strictly and exclusively to the exact network mentioned in that specific section.
+
+4. CONCISENESS & RELEVANCE:
+   - Answer ONLY the user's question.
+   - Do NOT introduce tangential, unnecessary, or unprompted facts (e.g. if asked about onboarding rules, do not list file size specs unless directly relevant).
+
+5. CITATION INVARIANTS:
+   - Explicitly cite the specific source using [Source 1], [Source 2], etc. notation for every factual claim.
+   - Only cite sources that directly support the claim.`;
 
 export function extractCitations(answer: string, retrievedChunks: SearchResult[]): Citation[] {
   const isOffCorpus =
     answer.toLowerCase().includes('does not contain') ||
     answer.toLowerCase().includes('not covered in corpus') ||
+    answer.toLowerCase().includes('not available in the provided corpus') ||
     answer.toLowerCase().includes('no information');
 
   if (isOffCorpus) {
     return [];
   }
 
-  const sourceRegex = /\[Source\s*(\d+)\]/gi;
+  // Matches [Source 1], [Source 1, 2], [Source 1, Source 2], [Source 1, Source 4]
+  const sourcePattern = /\[Source\s*([0-9,\sSource]+)\]/gi;
   const citedIndices = new Set<number>();
   let match: RegExpExecArray | null;
 
-  while ((match = sourceRegex.exec(answer)) !== null) {
-    const index = parseInt(match[1], 10) - 1;
-    if (index >= 0 && index < retrievedChunks.length) {
-      citedIndices.add(index);
+  while ((match = sourcePattern.exec(answer)) !== null) {
+    const inside = match[1];
+    const numbers = inside.match(/\d+/g);
+    if (numbers) {
+      for (const numStr of numbers) {
+        const index = parseInt(numStr, 10) - 1;
+        if (index >= 0 && index < retrievedChunks.length) {
+          citedIndices.add(index);
+        }
+      }
     }
   }
 
-  // If no explicit [Source N] was matched, but answer is grounded, link top sources
-  if (citedIndices.size === 0 && retrievedChunks.length > 0) {
-    citedIndices.add(0);
-  }
-
-  return Array.from(citedIndices).map((idx) => {
-    const chunk = retrievedChunks[idx];
-    return {
-      sourceIndex: idx + 1,
-      documentId: chunk.documentId,
-      documentTitle: chunk.documentTitle,
-      filename: chunk.filename,
-      chunkId: chunk.chunkId,
-      content: chunk.content,
-      pageNumber: chunk.metadata?.pageNumber,
-      section: chunk.metadata?.section,
-      heading: chunk.metadata?.heading,
-    };
-  });
+  return Array.from(citedIndices)
+    .sort((a, b) => a - b)
+    .map((idx) => {
+      const chunk = retrievedChunks[idx];
+      return {
+        sourceIndex: idx + 1,
+        documentId: chunk.documentId,
+        documentTitle: chunk.documentTitle,
+        filename: chunk.filename,
+        chunkId: chunk.chunkId,
+        content: chunk.content,
+        pageNumber: chunk.metadata?.pageNumber,
+        section: chunk.metadata?.section,
+        heading: chunk.metadata?.heading,
+      };
+    });
 }
 
 async function withRetry<T>(fn: () => Promise<T>, maxRetries = 5): Promise<T> {
@@ -87,7 +107,7 @@ export const ragService = {
       if (env.GEMINI_API_KEY && env.GEMINI_API_KEY.trim() !== '') {
         genAI = new GoogleGenerativeAI(env.GEMINI_API_KEY);
       } else {
-        throw new Error('[RAGService] GEMINI_API_KEY is required in .env for Gemini 2.5 Flash RAG generation.');
+        throw new Error('[RAGService] GEMINI_API_KEY is required in .env for Gemini RAG generation.');
       }
     }
     return genAI;
@@ -125,16 +145,16 @@ export const ragService = {
       };
     }
 
-    // Build structured context block with [Source N] labels
+    // Build structured context block with explicit entity/source separation
     const contextText = retrievedChunks
       .map((chunk, idx) => {
         const sourceNum = idx + 1;
         const meta = chunk.metadata;
         const sectionInfo = meta?.section ? ` | Section: ${meta.section}` : '';
         const headingInfo = meta?.heading ? ` | Heading: ${meta.heading}` : '';
-        return `[Source ${sourceNum}] Document: ${chunk.documentTitle} (${chunk.filename}${sectionInfo}${headingInfo})\nContent:\n${chunk.content}\n---`;
+        return `=== SOURCE [Source ${sourceNum}]: ${chunk.documentTitle} (${chunk.filename}${sectionInfo}${headingInfo}) ===\n${chunk.content}\n`;
       })
-      .join('\n\n');
+      .join('\n');
 
     let answer = '';
     let confidence = 0.95;
@@ -144,16 +164,16 @@ export const ragService = {
       answer = await withRetry(async () => {
         const ai = this.getGenAI();
         const model = ai.getGenerativeModel({
-          model: env.GEMINI_MODEL || 'gemini-2.5-flash',
+          model: env.GEMINI_MODEL || 'gemini-flash-latest',
           systemInstruction: GROUNDING_SYSTEM_INSTRUCTION,
         });
 
-        const prompt = `Context Information:\n${contextText}\n\nUser Question:\n${query}\n\nAnswer the question using ONLY the context above. If the information is not present, state that clearly:`;
+        const prompt = `Context Information:\n${contextText}\n\nUser Question:\n${query}\n\nAnswer the question concisely and accurately based ONLY on the context above. If the information is not present, state that clearly:`;
 
         const result = await model.generateContent({
           contents: [{ role: 'user', parts: [{ text: prompt }] }],
           generationConfig: {
-            temperature: 0.1, // low temperature for strict grounding
+            temperature: 0.1, // low temperature for strict factual grounding
             maxOutputTokens: 1024,
           },
         });
@@ -168,6 +188,7 @@ export const ragService = {
     if (
       answer.toLowerCase().includes('does not contain') ||
       answer.toLowerCase().includes('not covered in corpus') ||
+      answer.toLowerCase().includes('not available in the provided corpus') ||
       answer.toLowerCase().includes('no information')
     ) {
       isCorpusGrounded = false;

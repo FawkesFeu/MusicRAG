@@ -1,5 +1,4 @@
 import { Queue, Worker } from 'bullmq';
-import { Redis } from 'ioredis';
 import { env } from '../config/env.js';
 import { ingestionService } from '../services/ingestion.service.js';
 import { ingestionJobRepository } from '../repositories/ingestion-job.repository.js';
@@ -10,41 +9,47 @@ export interface IngestionJobPayload {
   textContent: string;
 }
 
-let redisClient: Redis | null = null;
 let bullQueue: Queue | null = null;
 let bullWorker: Worker | null = null;
 
 try {
-  redisClient = new Redis(env.REDIS_URL, {
-    maxRetriesPerRequest: 1,
-    retryStrategy: () => null, // Do not spam reconnect attempts if Redis is offline
-    lazyConnect: true,
-    connectTimeout: 1000,
+  const redisUrl = new URL(env.REDIS_URL);
+  const redisOptions = {
+    host: redisUrl.hostname || 'localhost',
+    port: parseInt(redisUrl.port || '6379', 10),
+    maxRetriesPerRequest: null,
+    connectTimeout: 2000,
     enableOfflineQueue: false,
+    retryStrategy: () => null, // Don't block if Redis isn't ready
+  };
+
+  bullQueue = new Queue('document-ingestion', {
+    connection: redisOptions,
   });
 
-  // Catch error events to prevent unhandled EventEmitter errors
-  redisClient.on('error', () => {
-    // Silently handle offline Redis
+  bullWorker = new Worker(
+    'document-ingestion',
+    async (job) => {
+      const { documentId, textContent } = job.data as IngestionJobPayload;
+      await ingestionService.processDocument(documentId, textContent, job.id);
+    },
+    {
+      connection: redisOptions,
+      concurrency: 2,
+    }
+  );
+
+  bullWorker.on('error', (err) => {
+    // Suppress unhandled redis connection errors if redis is starting up
   });
 
-  redisClient.connect().then(() => {
-    console.log('[Queue] Connected to Redis successfully.');
-    bullQueue = new Queue('document-ingestion', { connection: redisClient as any });
-    
-    bullWorker = new Worker(
-      'document-ingestion',
-      async (job) => {
-        const { documentId, textContent } = job.data as IngestionJobPayload;
-        await ingestionService.processDocument(documentId, textContent, job.id);
-      },
-      { connection: redisClient as any, concurrency: 2 }
-    );
-  }).catch(() => {
-    console.log('[Queue] Redis offline. Using integrated async background queue runner.');
+  bullQueue.on('error', (err) => {
+    // Suppress unhandled queue connection errors
   });
+
+  console.log('[Queue] BullMQ Document Ingestion queue initialized.');
 } catch (e) {
-  console.log('[Queue] Using integrated async background queue runner.');
+  console.log('[Queue] Integrated async in-memory worker active.');
 }
 
 export const queueService = {
@@ -64,20 +69,42 @@ export const queueService = {
           backoff: { type: 'exponential', delay: 2000 },
         });
         return jobId;
-      } catch (err) {
-        console.warn('[Queue] Failed to push to BullMQ, executing in background runner:', (err as Error).message);
+      } catch {
+        // Fallback to async in-memory execution if BullMQ fails
       }
     }
 
-    // Fallback: Run asynchronously in background
-    setImmediate(async () => {
+    // In-memory background runner
+    setTimeout(async () => {
       try {
         await ingestionService.processDocument(payload.documentId, payload.textContent, jobId);
-      } catch (err) {
-        console.error('[Queue] In-memory job execution error:', err);
+      } catch (err: any) {
+        console.error(`[Queue] In-memory job ${jobId} failed:`, err.message);
       }
-    });
+    }, 100);
 
     return jobId;
+  },
+
+  async getJobStatus(jobId: string) {
+    if (bullQueue) {
+      try {
+        const job = await bullQueue.getJob(jobId);
+        if (job) {
+          const state = await job.getState();
+          return {
+            jobId,
+            state,
+            progress: job.progress,
+            failedReason: job.failedReason,
+          };
+        }
+      } catch {
+        // Fallback to repository
+      }
+    }
+
+    const dbJob = await ingestionJobRepository.findByJobId(jobId);
+    return dbJob ? { jobId, state: dbJob.status, progress: 100 } : null;
   },
 };

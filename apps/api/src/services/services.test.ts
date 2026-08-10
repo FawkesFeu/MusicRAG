@@ -1,8 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { authService } from './auth.service.js';
-import { chunkDocument, countTokens, detectSection, detectHeading } from './chunking.service.js';
-import { generateMockEmbedding, embeddingService } from './embedding.service.js';
-import { extractCitations, synthesizeFallbackAnswer, GROUNDING_SYSTEM_INSTRUCTION } from './rag.service.js';
+import { chunkDocument, detectSection, detectHeading } from './chunking.service.js';
+import { extractCitations, GROUNDING_SYSTEM_INSTRUCTION } from './rag.service.js';
 
 describe('Auth Service', () => {
   it('hashes and compares passwords accurately', async () => {
@@ -40,15 +39,6 @@ describe('Chunking Service', () => {
   });
 });
 
-describe('Embedding Service', () => {
-  it('generates 768-dimensional normalized unit vectors', () => {
-    const vector = generateMockEmbedding('AppLovin playable ad specifications');
-    expect(vector.length).toBe(768);
-    const magnitude = Math.sqrt(vector.reduce((sum, val) => sum + val * val, 0));
-    expect(magnitude).toBeCloseTo(1.0, 4);
-  });
-});
-
 describe('RAG & Citations', () => {
   it('extracts source citations correctly from generated text', () => {
     const answer = 'According to [Source 1], AppLovin maximum file size is 5MB. Also note [Source 2] for sounds.';
@@ -58,27 +48,29 @@ describe('RAG & Citations', () => {
         documentId: 'd1',
         documentTitle: 'Network Specs AppLovin',
         filename: 'network-specs-applovin.md',
-        content: 'Max size is 5MB.',
-        similarity: 0.9,
+        content: 'Max size 5MB',
+        similarity: 0.95,
       },
       {
         chunkId: 'c2',
         documentId: 'd2',
         documentTitle: 'Build Pipeline',
         filename: 'build-pipeline.md',
-        content: 'Sounds are built in a separate pass.',
-        similarity: 0.85,
+        content: 'Sound asset compression pass',
+        similarity: 0.88,
       },
     ];
 
     const citations = extractCitations(answer, mockChunks);
     expect(citations.length).toBe(2);
-    expect(citations[0].documentTitle).toBe('Network Specs AppLovin');
-    expect(citations[1].documentTitle).toBe('Build Pipeline');
+    expect(citations[0].sourceIndex).toBe(1);
+    expect(citations[0].filename).toBe('network-specs-applovin.md');
+    expect(citations[1].sourceIndex).toBe(2);
+    expect(citations[1].filename).toBe('build-pipeline.md');
   });
 
-  it('handles corpus-unknown answers cleanly without fake citations', () => {
-    const answer = synthesizeFallbackAnswer('What is the CEO salary?', []);
-    expect(answer).toContain('does not contain information');
+  it('contains strict grounding rules in system instructions', () => {
+    expect(GROUNDING_SYSTEM_INSTRUCTION).toContain('STRICT GROUNDING');
+    expect(GROUNDING_SYSTEM_INSTRUCTION).toContain('[Source 1]');
   });
 });

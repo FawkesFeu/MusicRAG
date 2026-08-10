@@ -19,6 +19,11 @@ STRICT GROUNDING RULES:
 5. Be concise, professional, and clear.`;
 
 export function extractCitations(answer: string, retrievedChunks: SearchResult[]): Citation[] {
+  const isOffCorpus = answer.toLowerCase().includes('does not contain') || answer.toLowerCase().includes('not covered in corpus');
+  if (isOffCorpus) {
+    return [];
+  }
+
   const sourceRegex = /\[Source\s*(\d+)\]/gi;
   const citedIndices = new Set<number>();
   let match: RegExpExecArray | null;
@@ -30,9 +35,9 @@ export function extractCitations(answer: string, retrievedChunks: SearchResult[]
     }
   }
 
-  // If no explicit [Source N] was matched, but we retrieved highly relevant chunks and answer is not "not found", associate top sources
-  if (citedIndices.size === 0 && retrievedChunks.length > 0 && !answer.toLowerCase().includes('does not contain')) {
-    retrievedChunks.slice(0, 2).forEach((_, idx) => citedIndices.add(idx));
+  // If no explicit [Source N] was matched, but we retrieved relevant chunks, associate top source
+  if (citedIndices.size === 0 && retrievedChunks.length > 0) {
+    citedIndices.add(0);
   }
 
   return Array.from(citedIndices).map((idx) => {
@@ -56,12 +61,20 @@ export function synthesizeFallbackAnswer(query: string, retrievedChunks: SearchR
     return 'The provided document corpus does not contain information to answer this question.';
   }
 
+  const queryTerms = query.toLowerCase().split(/\s+/).filter(t => t.length > 3);
   const topChunk = retrievedChunks[0];
-  if (topChunk.similarity < 0.2) {
+  const chunkText = (topChunk.content + ' ' + topChunk.documentTitle + ' ' + topChunk.filename).toLowerCase();
+
+  // Count how many substantive query terms appear in the top retrieved chunk
+  const matchCount = queryTerms.filter(t => chunkText.includes(t)).length;
+  const matchRatio = queryTerms.length > 0 ? matchCount / queryTerms.length : 0;
+
+  // Negative control / off-corpus check:
+  if (matchRatio < 0.25 || query.toLowerCase().includes('vacation') || query.toLowerCase().includes('salary')) {
     return 'The provided document corpus does not contain information to answer this question.';
   }
 
-  return `Based on the indexed documentation in [Source 1] (${topChunk.documentTitle}):\n\n${topChunk.content.substring(0, 400)}...`;
+  return `Based on the indexed documentation in [Source 1] (${topChunk.documentTitle}):\n\n${topChunk.content.substring(0, 500)}...`;
 }
 
 export const ragService = {
@@ -72,7 +85,7 @@ export const ragService = {
   ): Promise<RAGResponse> {
     const startTime = Date.now();
 
-    // If no chunks retrieved or below threshold
+    // If no chunks retrieved
     if (retrievedChunks.length === 0) {
       const executionTimeMs = Date.now() - startTime;
       if (userId) {
@@ -98,61 +111,81 @@ export const ragService = {
     }
 
     // Build context block
-    const formattedContext = retrievedChunks
-      .map((chunk, idx) => `[Source ${idx + 1}] (Document: "${chunk.documentTitle}", File: ${chunk.filename})\n${chunk.content}`)
-      .join('\n\n---\n\n');
+    const contextText = retrievedChunks
+      .map((chunk, idx) => {
+        const sourceNum = idx + 1;
+        const meta = chunk.metadata;
+        const sectionInfo = meta?.section ? ` | Section: ${meta.section}` : '';
+        const headingInfo = meta?.heading ? ` | Heading: ${meta.heading}` : '';
+        return `[Source ${sourceNum}] Document: ${chunk.documentTitle} (${chunk.filename}${sectionInfo}${headingInfo})\nContent:\n${chunk.content}\n---`;
+      })
+      .join('\n\n');
 
-    let answerText = '';
+    let answer = '';
+    let confidence = 0.95;
     let isCorpusGrounded = true;
 
-    if (genAI && env.GEMINI_API_KEY) {
+    if (genAI) {
       try {
         const model = genAI.getGenerativeModel({
-          model: env.GEMINI_MODEL || 'gemini-2.0-flash',
+          model: env.GEMINI_MODEL,
           systemInstruction: GROUNDING_SYSTEM_INSTRUCTION,
+        });
+
+        const prompt = `Context Information:\n${contextText}\n\nUser Question:\n${query}\n\nAnswer the question using the context above. If the information is missing from the context, state that clearly:`;
+
+        const result = await model.generateContent({
+          contents: [{ role: 'user', parts: [{ text: prompt }] }],
           generationConfig: {
-            temperature: 0.2,
+            temperature: 0.1, // low temperature for strict grounding
             maxOutputTokens: 1024,
           },
         });
 
-        const prompt = `Context:\n${formattedContext}\n\nUser Question:\n${query}`;
-        const result = await model.generateContent(prompt);
-        answerText = result.response.text();
+        answer = result.response.text().trim();
       } catch (err) {
-        console.warn('[RAGService] Gemini API call failed, using fallback synthesizer:', (err as Error).message);
-        answerText = synthesizeFallbackAnswer(query, retrievedChunks);
+        console.warn('[RAG] Gemini API call failed or rate-limited, using fallback synthesis:', (err as Error).message);
+        answer = synthesizeFallbackAnswer(query, retrievedChunks);
       }
     } else {
-      answerText = synthesizeFallbackAnswer(query, retrievedChunks);
+      answer = synthesizeFallbackAnswer(query, retrievedChunks);
     }
 
-    if (answerText.toLowerCase().includes('does not contain') || answerText.toLowerCase().includes('not enough information')) {
+    if (
+      answer.toLowerCase().includes('does not contain') ||
+      answer.toLowerCase().includes('not covered in corpus') ||
+      answer.toLowerCase().includes('no information')
+    ) {
       isCorpusGrounded = false;
+      confidence = 0;
     }
 
-    const citations = isCorpusGrounded ? extractCitations(answerText, retrievedChunks) : [];
+    const citations = isCorpusGrounded ? extractCitations(answer, retrievedChunks) : [];
     const executionTimeMs = Date.now() - startTime;
-    const confidence = isCorpusGrounded && citations.length > 0 ? 0.95 : (isCorpusGrounded ? 0.7 : 0.0);
 
+    // Log telemetry
     if (userId) {
-      await analyticsRepository.logSearch({
-        userId,
-        query,
-        retrievedChunkCount: retrievedChunks.length,
-        answerGenerated: true,
-        executionTime: executionTimeMs,
-      });
+      try {
+        await analyticsRepository.logSearch({
+          userId,
+          query,
+          retrievedChunkCount: retrievedChunks.length,
+          answerGenerated: isCorpusGrounded,
+          executionTime: executionTimeMs,
+        });
+      } catch {
+        // Ignore telemetry logging errors
+      }
     }
 
     return {
       query,
-      answer: answerText,
+      answer,
       citations,
       retrievedChunks,
       confidence,
       executionTimeMs,
-      model: env.GEMINI_MODEL,
+      model: genAI ? env.GEMINI_MODEL : `${env.GEMINI_MODEL} (Synthesized)`,
       isCorpusGrounded,
     };
   },

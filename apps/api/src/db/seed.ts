@@ -1,8 +1,8 @@
 import fs from 'fs';
 import path from 'path';
 import crypto from 'crypto';
+import bcrypt from 'bcrypt';
 import { fileURLToPath } from 'url';
-import { authService } from '../services/auth.service.js';
 import { userRepository } from '../repositories/user.repository.js';
 import { documentRepository } from '../repositories/document.repository.js';
 import { ingestionService } from '../services/ingestion.service.js';
@@ -12,105 +12,90 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const CORPUS_DIR = path.resolve(__dirname, '../../../../sample_dataset/corpus');
 
-async function getAllFiles(dirPath: string): Promise<string[]> {
-  const entries = await fs.promises.readdir(dirPath, { withFileTypes: true });
-  const files = await Promise.all(
-    entries.map((entry) => {
-      const res = path.resolve(dirPath, entry.name);
-      return entry.isDirectory() ? getAllFiles(res) : [res];
-    })
-  );
-  return files.flat().filter(f => f.endsWith('.md') || f.endsWith('.txt'));
-}
-
 export async function seedDatabase() {
   console.log('====================================================');
   console.log('🌱 Starting Database Seeding...');
   console.log('====================================================');
 
-  // 1. Seed Demo Users
-  console.log('\n[1/2] Seeding Demo Users...');
+  try {
+    // 1. Seed Demo Users
+    console.log('\n[1/2] Seeding Demo Users...');
 
-  // Admin User
-  let admin = await userRepository.findByEmail(DEMO_CREDENTIALS.ADMIN.email);
-  if (!admin) {
-    const hashedPassword = await authService.hashPassword(DEMO_CREDENTIALS.ADMIN.password);
-    admin = await userRepository.create({
-      name: DEMO_CREDENTIALS.ADMIN.name,
-      email: DEMO_CREDENTIALS.ADMIN.email,
-      hashedPassword,
-      role: 'admin',
-    });
-    console.log(`✅ Created Admin: ${DEMO_CREDENTIALS.ADMIN.email} (Password: ${DEMO_CREDENTIALS.ADMIN.password})`);
-  } else {
-    console.log(`ℹ️ Admin already exists: ${DEMO_CREDENTIALS.ADMIN.email}`);
-  }
-
-  // Standard User
-  let user = await userRepository.findByEmail(DEMO_CREDENTIALS.USER.email);
-  if (!user) {
-    const hashedPassword = await authService.hashPassword(DEMO_CREDENTIALS.USER.password);
-    user = await userRepository.create({
-      name: DEMO_CREDENTIALS.USER.name,
-      email: DEMO_CREDENTIALS.USER.email,
-      hashedPassword,
-      role: 'user',
-    });
-    console.log(`✅ Created User: ${DEMO_CREDENTIALS.USER.email} (Password: ${DEMO_CREDENTIALS.USER.password})`);
-  } else {
-    console.log(`ℹ️ User already exists: ${DEMO_CREDENTIALS.USER.email}`);
-  }
-
-  // 2. Seed Sample Dataset Corpus
-  console.log('\n[2/2] Ingesting Sample Dataset Corpus from: ' + CORPUS_DIR);
-  if (!fs.existsSync(CORPUS_DIR)) {
-    console.warn('⚠️ Sample corpus directory not found at:', CORPUS_DIR);
-    return;
-  }
-
-  const filePaths = await getAllFiles(CORPUS_DIR);
-  console.log(`Found ${filePaths.length} documents in sample corpus.`);
-
-  let indexedCount = 0;
-  for (const filePath of filePaths) {
-    const filename = path.basename(filePath);
-    const title = filename.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' ').toUpperCase();
-    const content = await fs.promises.readFile(filePath, 'utf-8');
-    const checksum = crypto.createHash('sha256').update(content).digest('hex');
-
-    let doc = await documentRepository.findByChecksum(checksum);
-    if (!doc) {
-      doc = await documentRepository.create({
-        title,
-        filename,
-        fileType: filePath.endsWith('.pdf') ? 'pdf' : 'markdown',
-        fileSize: Buffer.byteLength(content),
-        checksum,
-        uploadedBy: admin.id,
-        status: 'uploaded',
+    const adminHash = await bcrypt.hash(DEMO_CREDENTIALS.ADMIN.password, 10);
+    let adminUser = await userRepository.findByEmail(DEMO_CREDENTIALS.ADMIN.email);
+    if (!adminUser) {
+      adminUser = await userRepository.create({
+        email: DEMO_CREDENTIALS.ADMIN.email,
+        name: DEMO_CREDENTIALS.ADMIN.name,
+        hashedPassword: adminHash,
+        role: 'admin',
       });
+      console.log(`  ✅ Created Admin User: ${DEMO_CREDENTIALS.ADMIN.email}`);
+    } else {
+      console.log(`  ℹ️ Admin User already exists: ${DEMO_CREDENTIALS.ADMIN.email}`);
     }
 
-    try {
-      const res = await ingestionService.processDocument(doc.id, content);
+    const userHash = await bcrypt.hash(DEMO_CREDENTIALS.USER.password, 10);
+    let standardUser = await userRepository.findByEmail(DEMO_CREDENTIALS.USER.email);
+    if (!standardUser) {
+      standardUser = await userRepository.create({
+        email: DEMO_CREDENTIALS.USER.email,
+        name: DEMO_CREDENTIALS.USER.name,
+        hashedPassword: userHash,
+        role: 'user',
+      });
+      console.log(`  ✅ Created Standard User: ${DEMO_CREDENTIALS.USER.email}`);
+    } else {
+      console.log(`  ℹ️ Standard User already exists: ${DEMO_CREDENTIALS.USER.email}`);
+    }
+
+    // 2. Ingest Sample Dataset Corpus
+    console.log('\n[2/2] Ingesting Corpus Documents from sample_dataset/corpus...');
+    if (!fs.existsSync(CORPUS_DIR)) {
+      console.warn(`  ⚠️ Corpus directory not found at: ${CORPUS_DIR}`);
+      return;
+    }
+
+    const files = fs.readdirSync(CORPUS_DIR).filter(f => f.endsWith('.md') || f.endsWith('.txt'));
+    console.log(`  Found ${files.length} markdown documents to index.`);
+
+    let indexedCount = 0;
+    for (const file of files) {
+      const filePath = path.join(CORPUS_DIR, file);
+      const textContent = fs.readFileSync(filePath, 'utf-8');
+      const checksum = crypto.createHash('sha256').update(textContent).digest('hex');
+      const title = file.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' ').toUpperCase();
+
+      let doc = await documentRepository.findByChecksum(checksum);
+      if (!doc) {
+        doc = await documentRepository.create({
+          title,
+          filename: file,
+          fileType: 'markdown',
+          fileSize: Buffer.byteLength(textContent),
+          checksum,
+          uploadedBy: adminUser?.id || null,
+          status: 'uploaded',
+        });
+      }
+
+      console.log(`  -> Processing & embedding: ${file} (ID: ${doc.id.slice(0, 8)}...)...`);
+      await ingestionService.processDocument(doc.id, textContent);
       indexedCount++;
-      console.log(`  ✓ [${indexedCount}/${filePaths.length}] Indexed: ${filename} (${res.chunkCount} chunks)`);
-    } catch (err) {
-      console.error(`  ✗ Error indexing ${filename}:`, (err as Error).message);
     }
-  }
 
-  console.log('\n====================================================');
-  console.log(`✨ Seeding Completed! Indexed ${indexedCount} documents.`);
-  console.log('====================================================');
+    console.log(`\n====================================================`);
+    console.log(`🎉 Database Seeding Complete! ${indexedCount} documents indexed.`);
+    console.log(`====================================================\n`);
+  } catch (err) {
+    console.error('[DB] Seeding error:', err);
+    throw err;
+  }
 }
 
-// Allow direct execution: `tsx src/db/seed.ts`
+// Allow direct execution
 if (process.argv[1]?.endsWith('seed.ts')) {
   seedDatabase()
     .then(() => process.exit(0))
-    .catch((err) => {
-      console.error('[DB] Seeding failed:', err);
-      process.exit(1);
-    });
+    .catch(() => process.exit(1));
 }

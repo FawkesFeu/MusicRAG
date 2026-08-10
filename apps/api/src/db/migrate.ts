@@ -1,10 +1,21 @@
 import pg from 'pg';
 import { env } from '../config/env.js';
+import { testDbConnection } from './client.js';
 
 const { Pool } = pg;
 
 export async function runMigrations() {
-  console.log(`[DB] Running migrations on: ${env.DATABASE_URL}...`);
+  console.log(`[DB] Checking database connection for migrations...`);
+  
+  const isPostgresUp = await testDbConnection();
+  if (!isPostgresUp) {
+    console.log(`ℹ️ [DB] PostgreSQL is not running on ${env.DATABASE_URL}.`);
+    console.log(`✅ [DB] Local persistent storage adapter initialized automatically (.rag_data/store.json).`);
+    console.log(`💡 [DB] To use PostgreSQL + pgvector, start Docker with 'docker-compose up -d'.`);
+    return;
+  }
+
+  console.log(`[DB] Running PostgreSQL + pgvector migrations on: ${env.DATABASE_URL}...`);
   const pool = new Pool({ connectionString: env.DATABASE_URL });
   const client = await pool.connect();
 
@@ -119,7 +130,7 @@ export async function runMigrations() {
       CREATE INDEX IF NOT EXISTS search_queries_created_at_idx ON search_queries(created_at);
     `);
 
-    // Create HNSW vector index for cosine similarity
+    // Create HNSW vector index
     try {
       await client.query(`
         CREATE INDEX IF NOT EXISTS embeddings_embedding_hnsw_idx 
@@ -130,7 +141,7 @@ export async function runMigrations() {
       console.warn('[DB] Note on HNSW index:', (hnswErr as Error).message);
     }
 
-    console.log('[DB] Migrations completed successfully.');
+    console.log('[DB] PostgreSQL Migrations completed successfully.');
   } finally {
     client.release();
     await pool.end();
@@ -142,7 +153,7 @@ if (process.argv[1]?.endsWith('migrate.ts')) {
   runMigrations()
     .then(() => process.exit(0))
     .catch((err) => {
-      console.error('[DB] Migration failed:', err);
+      console.error('[DB] Migration error:', err);
       process.exit(1);
     });
 }

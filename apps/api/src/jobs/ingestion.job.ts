@@ -16,9 +16,16 @@ let bullWorker: Worker | null = null;
 
 try {
   redisClient = new Redis(env.REDIS_URL, {
-    maxRetriesPerRequest: null,
+    maxRetriesPerRequest: 1,
+    retryStrategy: () => null, // Do not spam reconnect attempts if Redis is offline
     lazyConnect: true,
-    connectTimeout: 2000,
+    connectTimeout: 1000,
+    enableOfflineQueue: false,
+  });
+
+  // Catch error events to prevent unhandled EventEmitter errors
+  redisClient.on('error', () => {
+    // Silently handle offline Redis
   });
 
   redisClient.connect().then(() => {
@@ -33,11 +40,11 @@ try {
       },
       { connection: redisClient as any, concurrency: 2 }
     );
-  }).catch((err) => {
-    console.warn('[Queue] Redis not available, using in-memory background queue runner:', err.message);
+  }).catch(() => {
+    console.log('[Queue] Redis offline. Using integrated async background queue runner.');
   });
 } catch (e) {
-  console.warn('[Queue] BullMQ init exception, fallback active.');
+  console.log('[Queue] Using integrated async background queue runner.');
 }
 
 export const queueService = {

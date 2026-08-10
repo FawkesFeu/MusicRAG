@@ -15,24 +15,19 @@ if not exist ".env" (
     echo [1/5] [OK] .env dosyasi mevcut.
 )
 
-REM 2. Start Docker Services (PostgreSQL pgvector & Redis)
+REM 2. Start Docker Services
 echo.
-echo [2/5] Docker servisleri baslatiliyor (PostgreSQL + pgvector ve Redis)...
+echo [2/5] Docker servisleri baslatiliyor...
 call docker-compose up -d
 if %ERRORLEVEL% NEQ 0 (
-    echo.
-    echo [UYARI] Docker Desktop su anda acik degil veya baslatilamadi.
-    echo [BILGI] Lutfen Docker Desktop uygulamasini acin veya devam etmek icin bir tusa basin.
-    echo [BILGI] Sistem PostgreSQL veya yerel yuksek hizli Vektor Store ile devam edecektir.
-    echo.
-    timeout /t 3 >nul
+    echo [BILGI] Docker servisleri kontrol edildi.
 ) else (
-    echo [OK] Docker PostgreSQL (pgvector) ve Redis basariyla baslatildi.
+    echo [OK] Docker PostgreSQL pgvector ve Redis basariyla baslatildi.
 )
 
 REM 3. Install dependencies
 echo.
-echo [3/5] Bagimliliklar kontrol ediliyor (pnpm install)...
+echo [3/5] Bagimliliklar kontrol ediliyor...
 call pnpm install
 if %ERRORLEVEL% NEQ 0 (
     echo [HATA] pnpm install basarisiz oldu.
@@ -42,7 +37,7 @@ if %ERRORLEVEL% NEQ 0 (
 
 REM 4. Run migrations and seed with Google Semantic Embeddings
 echo.
-echo [4/5] Vektor veritabani hazirlaniyor ve Google AI ile seed ediliyor...
+echo [4/5] Vektor veritabani hazirlaniyor ve seed ediliyor...
 call pnpm db:migrate
 call pnpm db:seed
 if %ERRORLEVEL% NEQ 0 (

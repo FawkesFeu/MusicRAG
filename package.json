@@ -1,0 +1,28 @@
+{
+  "name": "rag-search-app-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Full-stack TypeScript RAG & Vector Search Monorepo Application",
+  "scripts": {
+    "dev": "pnpm --filter @rag/api dev",
+    "dev:web": "pnpm --filter @rag/web dev",
+    "dev:all": "pnpm --parallel --filter @rag/api --filter @rag/web dev",
+    "dev:mcp": "pnpm --filter @rag/mcp-server dev",
+    "build": "pnpm -r build",
+    "db:migrate": "pnpm --filter @rag/api db:migrate",
+    "db:seed": "pnpm --filter @rag/api db:seed",
+    "evaluate": "pnpm --filter @rag/api evaluate",
+    "test": "pnpm -r test"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.5"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild",
+      "bcrypt",
+      "protobufjs"
+    ]
+  },
+  "packageManager": "pnpm@11.1.2"
+}

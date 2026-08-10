@@ -8,25 +8,35 @@ Write-Host ""
 
 # 1. Check for .env file
 if (-not (Test-Path ".env")) {
-    Write-Host "[1/4] 📄 .env dosyası bulunamadı, .env.example kopyalanıyor..." -ForegroundColor Yellow
+    Write-Host "[1/5] 📄 .env dosyası bulunamadı, .env.example kopyalanıyor..." -ForegroundColor Yellow
     Copy-Item ".env.example" ".env"
     Write-Host "✅ .env dosyası başarıyla oluşturuldu." -ForegroundColor Green
 } else {
-    Write-Host "[1/4] ✅ .env dosyası mevcut." -ForegroundColor Green
+    Write-Host "[1/5] ✅ .env dosyası mevcut." -ForegroundColor Green
 }
 
-# 2. Check pnpm and install dependencies
+# 2. Start Docker Services
 Write-Host ""
-Write-Host "[2/4] 📦 Bağımlılıklar kontrol ediliyor (pnpm install)..." -ForegroundColor Yellow
+Write-Host "[2/5] 🐳 Docker servisleri başlatılıyor (PostgreSQL + pgvector ve Redis)..." -ForegroundColor Yellow
+docker-compose up -d
+if ($LASTEXITCODE -ne 0) {
+    Write-Host "⚠️ Docker Desktop açık değil. PostgreSQL + pgvector için Docker Desktop'ı açabilirsiniz." -ForegroundColor Yellow
+} else {
+    Write-Host "✅ Docker PostgreSQL (pgvector) ve Redis konteynerleri çalışıyor." -ForegroundColor Green
+}
+
+# 3. Check pnpm and install dependencies
+Write-Host ""
+Write-Host "[3/5] 📦 Bağımlılıklar kontrol ediliyor (pnpm install)..." -ForegroundColor Yellow
 pnpm install
 if ($LASTEXITCODE -ne 0) {
     Write-Host "❌ pnpm install sırasında bir hata oluştu." -ForegroundColor Red
     exit $LASTEXITCODE
 }
 
-# 3. Migrate and Seed
+# 4. Migrate and Seed
 Write-Host ""
-Write-Host "[3/4] 🌱 Veritabanı ve Vektör Store hazırlanıyor (migrate & seed)..." -ForegroundColor Yellow
+Write-Host "[4/5] 🌱 Vektör veritabanı hazırlanıyor ve Google AI ile seed ediliyor..." -ForegroundColor Yellow
 pnpm db:migrate
 pnpm db:seed
 if ($LASTEXITCODE -ne 0) {
@@ -34,9 +44,9 @@ if ($LASTEXITCODE -ne 0) {
     exit $LASTEXITCODE
 }
 
-# 4. Start servers
+# 5. Start servers
 Write-Host ""
-Write-Host "[4/4] 🌟 Tüm servisler başlatılıyor (Next.js Frontend + Express API)..." -ForegroundColor Green
+Write-Host "[5/5] 🌟 Tüm servisler başlatılıyor (Next.js Frontend + Express API)..." -ForegroundColor Green
 Write-Host ""
 Write-Host "====================================================" -ForegroundColor Cyan
 Write-Host "🌐 Web UI:     http://localhost:3000" -ForegroundColor White

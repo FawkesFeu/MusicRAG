@@ -6,6 +6,7 @@ import searchRoutes from './routes/search.routes.js';
 import documentsRoutes from './routes/documents.routes.js';
 import ingestionRoutes from './routes/ingestion.routes.js';
 import analyticsRoutes from './routes/analytics.routes.js';
+import { watcherService } from './services/watcher.service.js';
 
 export const app: Express = express();
 
@@ -47,5 +48,8 @@ if (process.env.NODE_ENV !== 'test') {
     console.log(`🤖 LLM: Google ${env.GEMINI_MODEL}`);
     console.log(`🧠 Embedding: Google ${env.EMBEDDING_MODEL} (768-dim)`);
     console.log(`====================================================`);
+
+    // Start self-updating corpus watcher (Bonus Feature)
+    watcherService.startWatching();
   });
 }

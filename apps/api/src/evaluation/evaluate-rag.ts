@@ -118,6 +118,8 @@ export async function runEvaluation() {
       confidence: ragResponse.confidence,
       durationMs: duration,
     });
+
+    await new Promise((r) => setTimeout(r, 1500));
   }
 
   const accuracy = ((passedTests / EVALUATION_TEST_CASES.length) * 100).toFixed(1);

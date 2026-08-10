@@ -60,13 +60,34 @@ export function extractCitations(answer: string, retrievedChunks: SearchResult[]
   });
 }
 
+async function withRetry<T>(fn: () => Promise<T>, maxRetries = 5): Promise<T> {
+  let attempt = 0;
+  while (attempt < maxRetries) {
+    try {
+      return await fn();
+    } catch (error: any) {
+      attempt++;
+      if (error?.status === 429 || error?.message?.includes('429') || error?.message?.includes('Quota exceeded')) {
+        const delay = 8000 + attempt * 2000;
+        console.log(`[RAGService] Rate limit hit (429). Pausing for ${Math.round(delay / 1000)}s before retrying...`);
+        await new Promise((res) => setTimeout(res, delay));
+      } else if (attempt >= maxRetries) {
+        throw error;
+      } else {
+        await new Promise((res) => setTimeout(res, 1000 * attempt));
+      }
+    }
+  }
+  throw new Error('Max retries exceeded for Gemini generation');
+}
+
 export const ragService = {
   getGenAI(): GoogleGenerativeAI {
     if (!genAI) {
       if (env.GEMINI_API_KEY && env.GEMINI_API_KEY.trim() !== '') {
         genAI = new GoogleGenerativeAI(env.GEMINI_API_KEY);
       } else {
-        throw new Error('[RAGService] GEMINI_API_KEY is required in .env for Gemini 2.0 Flash RAG generation.');
+        throw new Error('[RAGService] GEMINI_API_KEY is required in .env for Gemini 2.5 Flash RAG generation.');
       }
     }
     return genAI;
@@ -120,23 +141,25 @@ export const ragService = {
     let isCorpusGrounded = true;
 
     try {
-      const ai = this.getGenAI();
-      const model = ai.getGenerativeModel({
-        model: env.GEMINI_MODEL || 'gemini-2.0-flash',
-        systemInstruction: GROUNDING_SYSTEM_INSTRUCTION,
+      answer = await withRetry(async () => {
+        const ai = this.getGenAI();
+        const model = ai.getGenerativeModel({
+          model: env.GEMINI_MODEL || 'gemini-2.5-flash',
+          systemInstruction: GROUNDING_SYSTEM_INSTRUCTION,
+        });
+
+        const prompt = `Context Information:\n${contextText}\n\nUser Question:\n${query}\n\nAnswer the question using ONLY the context above. If the information is not present, state that clearly:`;
+
+        const result = await model.generateContent({
+          contents: [{ role: 'user', parts: [{ text: prompt }] }],
+          generationConfig: {
+            temperature: 0.1, // low temperature for strict grounding
+            maxOutputTokens: 1024,
+          },
+        });
+
+        return result.response.text().trim();
       });
-
-      const prompt = `Context Information:\n${contextText}\n\nUser Question:\n${query}\n\nAnswer the question using ONLY the context above. If the information is not present, state that clearly:`;
-
-      const result = await model.generateContent({
-        contents: [{ role: 'user', parts: [{ text: prompt }] }],
-        generationConfig: {
-          temperature: 0.1, // low temperature for strict grounding
-          maxOutputTokens: 1024,
-        },
-      });
-
-      answer = result.response.text().trim();
     } catch (err: any) {
       console.error('[RAG] Gemini API generation error:', err.message);
       throw err;

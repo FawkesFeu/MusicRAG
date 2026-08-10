@@ -24,13 +24,21 @@ export const chunkRepository = {
     }
   },
 
+  async findByDocumentId(documentId: string) {
+    try {
+      return await db.select().from(documentChunks).where(eq(documentChunks.documentId, documentId));
+    } catch {
+      return localStore.findChunksByDocumentId(documentId);
+    }
+  },
+
   async insertEmbeddings(items: { chunkId: string; embedding: number[]; modelName?: string }[]) {
     if (items.length === 0) return;
     try {
       const values = items.map(item => ({
         chunkId: item.chunkId,
         embedding: item.embedding,
-        modelName: item.modelName || 'text-embedding-004',
+        modelName: item.modelName || 'gemini-embedding-001',
         modelVersion: '1.0',
       }));
       await db.insert(embeddings).values(values);
@@ -58,7 +66,7 @@ export const chunkRepository = {
           d.filename,
           dc.content,
           dc.metadata,
-          (1 - (e.embedding <=> $1::vector)) as similarity
+          1 - (e.embedding <=> $1::vector) as similarity
         FROM embeddings e
         JOIN document_chunks dc ON e.chunk_id = dc.id
         JOIN documents d ON dc.document_id = d.id
@@ -67,9 +75,7 @@ export const chunkRepository = {
         ORDER BY similarity DESC
         LIMIT $3;
       `;
-
       const result = await pool.query(query, [vectorStr, minSimilarity, topK]);
-
       return result.rows.map((row: any) => ({
         chunkId: row.chunk_id,
         documentId: row.document_id,
@@ -86,7 +92,7 @@ export const chunkRepository = {
 
   async keywordSearch(query: string, topK: number = 5): Promise<SearchResult[]> {
     try {
-      const sanitizedQuery = `%${query.replace(/%/g, '\\%')}%`;
+      const sanitizedQuery = `%${query.replace(/[%_]/g, '')}%`;
       const sqlQuery = `
         SELECT 
           dc.id as chunk_id,

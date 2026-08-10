@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { apiClient, setAuthTokens, clearAuthTokens } from '../lib/api-client';
 import type { UserPublicProfile, UserRole } from '@rag/shared';
 
@@ -14,32 +14,80 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<void>;
   register: (name: string, email: string, password: string, role?: UserRole) => Promise<void>;
   logout: () => Promise<void>;
+  refreshProfile: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+function syncCookies(token: string | null, role: string | null) {
+  if (typeof document === 'undefined') return;
+  if (token) {
+    document.cookie = `rag_token=${token}; path=/; max-age=86400; SameSite=Lax`;
+    document.cookie = `rag_role=${role || 'user'}; path=/; max-age=86400; SameSite=Lax`;
+  } else {
+    document.cookie = 'rag_token=; path=/; max-age=0';
+    document.cookie = 'rag_role=; path=/; max-age=0';
+  }
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
+  const pathname = usePathname();
   const [user, setUser] = useState<UserPublicProfile | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Initialize auth from localStorage on mount
-  useEffect(() => {
+  const refreshProfile = useCallback(async () => {
     const savedToken = localStorage.getItem('rag_access_token');
-    const savedUserStr = localStorage.getItem('rag_user');
-
-    if (savedToken && savedUserStr) {
-      try {
-        const savedUser = JSON.parse(savedUserStr);
-        setToken(savedToken);
-        setUser(savedUser);
-      } catch (e) {
-        clearAuthTokens();
-      }
+    if (!savedToken) {
+      setUser(null);
+      setToken(null);
+      syncCookies(null, null);
+      setLoading(false);
+      return;
     }
-    setLoading(false);
+
+    try {
+      const profile = await apiClient.get<UserPublicProfile>('/api/auth/me');
+      setUser(profile);
+      setToken(savedToken);
+      localStorage.setItem('rag_user', JSON.stringify(profile));
+      syncCookies(savedToken, profile.role);
+    } catch {
+      // Token is invalid/expired
+      clearAuthTokens();
+      setUser(null);
+      setToken(null);
+      syncCookies(null, null);
+    } finally {
+      setLoading(false);
+    }
   }, []);
+
+  // Verify token on initial mount
+  useEffect(() => {
+    refreshProfile();
+  }, [refreshProfile]);
+
+  // Route security check on navigation
+  useEffect(() => {
+    if (loading) return;
+
+    const isAuthPage = pathname === '/login' || pathname === '/register';
+    const isProtectedPage = pathname.startsWith('/chat') || pathname.startsWith('/dashboard');
+
+    if (!user && isProtectedPage) {
+      router.replace('/login');
+    } else if (user && isAuthPage) {
+      if (user.role === 'admin') {
+        router.replace('/dashboard');
+      } else {
+        router.replace('/chat');
+      }
+    } else if (user && pathname.startsWith('/dashboard') && user.role !== 'admin') {
+      router.replace('/chat');
+    }
+  }, [user, loading, pathname, router]);
 
   const login = useCallback(async (email: string, password: string) => {
     const res = await apiClient.post('/api/auth/login', { email, password });
@@ -47,13 +95,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     setAuthTokens(accessToken, refreshToken);
     localStorage.setItem('rag_user', JSON.stringify(loggedUser));
+    syncCookies(accessToken, loggedUser.role);
     setToken(accessToken);
     setUser(loggedUser);
 
     if (loggedUser.role === 'admin') {
-      router.push('/dashboard');
+      router.replace('/dashboard');
     } else {
-      router.push('/chat');
+      router.replace('/chat');
     }
   }, [router]);
 
@@ -63,9 +112,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     setAuthTokens(accessToken, refreshToken);
     localStorage.setItem('rag_user', JSON.stringify(newUser));
+    syncCookies(accessToken, newUser.role);
     setToken(accessToken);
     setUser(newUser);
-    router.push('/chat');
+    router.replace('/chat');
   }, [router]);
 
   const logout = useCallback(async () => {
@@ -78,9 +128,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Ignore logout errors
     } finally {
       clearAuthTokens();
+      syncCookies(null, null);
       setUser(null);
       setToken(null);
-      router.push('/login');
+      router.replace('/login');
     }
   }, [router]);
 
@@ -98,6 +149,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         login,
         register,
         logout,
+        refreshProfile,
       }}
     >
       {children}

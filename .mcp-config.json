@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "playable-factory-rag": {
+      "command": "node",
+      "args": ["./apps/mcp-server/dist/server.js"],
+      "env": {
+        "API_URL": "http://localhost:3001",
+        "MCP_API_TOKEN": "mcp-secret-token-rag-2026"
+      }
+    }
+  }
+}

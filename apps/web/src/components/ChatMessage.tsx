@@ -42,10 +42,13 @@ function shortLabel(title: string, filename: string): string {
 
 /**
  * Group raw citations by filename.
- * Each file gets ONE chip (displayIndex = the lowest sourceIndex seen).
- * Preserves original source numbers for in-text matching.
+/**
+ * Group raw citations by filename, then renumber sequentially (1, 2, 3…).
+ * Each file gets ONE chip. Original backend sourceIndex values are kept inside
+ * each chunk object so the inline marker mapper can still match them.
  */
 function groupCitations(citations: Citation[]): GroupedCitation[] {
+  // First pass: build groups preserving insertion order
   const map = new Map<string, GroupedCitation>();
   for (const c of citations) {
     const key = c.filename;
@@ -54,18 +57,24 @@ function groupCitations(citations: Citation[]): GroupedCitation[] {
         filename: c.filename,
         documentTitle: c.documentTitle,
         chunks: [c],
-        displayIndex: c.sourceIndex ?? 1,
+        displayIndex: c.sourceIndex ?? 1, // temporary — overwritten below
       });
     } else {
       const group = map.get(key)!;
       group.chunks.push(c);
+      // Keep the lowest original sourceIndex as ordering key
       if ((c.sourceIndex ?? 999) < group.displayIndex) {
         group.displayIndex = c.sourceIndex ?? group.displayIndex;
       }
     }
   }
-  return Array.from(map.values()).sort((a, b) => a.displayIndex - b.displayIndex);
+
+  // Sort by the first-seen original sourceIndex, then RENUMBER sequentially
+  const sorted = Array.from(map.values()).sort((a, b) => a.displayIndex - b.displayIndex);
+  sorted.forEach((g, i) => { g.displayIndex = i + 1; });
+  return sorted;
 }
+
 
 /**
  * Replace [Source N] / [Source N, M] patterns in the answer text with

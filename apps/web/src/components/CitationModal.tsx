@@ -1,15 +1,19 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { X, FileText, Copy, Check, Bookmark, ChevronDown, ChevronRight } from 'lucide-react';
 import type { Citation } from '@rag/shared';
 
 export interface GroupedCitation {
   filename: string;
   documentTitle: string;
-  /** All chunks from this file, in sourceIndex order */
+  /** All chunks from this file */
   chunks: Citation[];
-  /** The lowest sourceIndex assigned (used for display badge number) */
+  /**
+   * Sequential display number assigned AFTER deduplication (1, 2, 3…).
+   * Replaces the raw backend sourceIndex to eliminate gaps.
+   */
   displayIndex: number;
 }
 
@@ -18,7 +22,15 @@ interface CitationModalProps {
   onClose: () => void;
 }
 
-function ChunkCard({ chunk, index, defaultOpen }: { chunk: Citation; index: number; defaultOpen: boolean }) {
+function ChunkCard({
+  chunk,
+  index,
+  defaultOpen,
+}: {
+  chunk: Citation;
+  index: number;
+  defaultOpen: boolean;
+}) {
   const [open, setOpen] = useState(defaultOpen);
   const [copied, setCopied] = useState(false);
 
@@ -30,9 +42,8 @@ function ChunkCard({ chunk, index, defaultOpen }: { chunk: Citation; index: numb
 
   return (
     <div className="rounded-xl border border-dark-border overflow-hidden">
-      {/* Chunk header — clickable to toggle */}
       <button
-        className="w-full flex items-center justify-between bg-dark-card/60 px-4 py-3 text-xs text-left group hover:bg-slate-800/60 transition"
+        className="w-full flex items-center justify-between bg-dark-card/60 px-4 py-3 text-xs text-left hover:bg-slate-800/60 transition"
         onClick={() => setOpen((o) => !o)}
       >
         <div className="flex items-center gap-2 min-w-0">
@@ -56,17 +67,27 @@ function ChunkCard({ chunk, index, defaultOpen }: { chunk: Citation; index: numb
         </div>
         <div className="flex items-center gap-2 shrink-0 ml-2">
           <button
-            onClick={(e) => { e.stopPropagation(); handleCopy(); }}
+            onClick={(e) => {
+              e.stopPropagation();
+              handleCopy();
+            }}
             className="p-1 rounded text-slate-500 hover:text-slate-200 transition"
             title="Copy chunk"
           >
-            {copied ? <Check className="h-3.5 w-3.5 text-emerald-400" /> : <Copy className="h-3.5 w-3.5" />}
+            {copied ? (
+              <Check className="h-3.5 w-3.5 text-emerald-400" />
+            ) : (
+              <Copy className="h-3.5 w-3.5" />
+            )}
           </button>
-          {open ? <ChevronDown className="h-4 w-4 text-slate-400" /> : <ChevronRight className="h-4 w-4 text-slate-400" />}
+          {open ? (
+            <ChevronDown className="h-4 w-4 text-slate-400" />
+          ) : (
+            <ChevronRight className="h-4 w-4 text-slate-400" />
+          )}
         </div>
       </button>
 
-      {/* Chunk content */}
       {open && (
         <div className="bg-dark-bg/60 px-4 py-3">
           <p className="font-mono text-sm leading-relaxed text-slate-200 whitespace-pre-wrap">
@@ -79,25 +100,39 @@ function ChunkCard({ chunk, index, defaultOpen }: { chunk: Citation; index: numb
 }
 
 export function CitationModal({ citation, onClose }: CitationModalProps) {
+  // ── Scroll lock ─────────────────────────────────────────────────────────
+  useEffect(() => {
+    if (!citation) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [citation]);
+
   if (!citation) return null;
 
-  return (
+  const modal = (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in duration-200"
+      className="fixed inset-0 z-[9999] flex items-center justify-center p-4"
+      style={{ backgroundColor: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(4px)' }}
       onClick={onClose}
     >
       <div
         className="w-full max-w-2xl overflow-hidden rounded-2xl glass-panel border border-slate-700/60 shadow-2xl animate-in zoom-in-95 duration-200"
+        style={{ maxHeight: '85vh', display: 'flex', flexDirection: 'column' }}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-start justify-between border-b border-dark-border px-6 py-4 bg-dark-card/60">
+        <div className="flex items-start justify-between border-b border-dark-border px-6 py-4 bg-dark-card/60 shrink-0">
           <div className="flex items-center gap-3 min-w-0">
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-500/10 text-brand-400 border border-brand-500/20">
               <FileText className="h-5 w-5" />
             </div>
             <div className="min-w-0">
-              <h3 className="text-base font-semibold text-white truncate">{citation.documentTitle}</h3>
+              <h3 className="text-base font-semibold text-white truncate">
+                {citation.documentTitle}
+              </h3>
               <p className="text-xs font-mono text-slate-400 truncate">{citation.filename}</p>
             </div>
           </div>
@@ -109,21 +144,23 @@ export function CitationModal({ citation, onClose }: CitationModalProps) {
           </button>
         </div>
 
-        {/* Sub-header: chunk count */}
-        <div className="flex items-center gap-2 px-6 py-2.5 bg-slate-900/40 border-b border-dark-border text-xs text-slate-400">
-          <span className="font-semibold text-slate-300">{citation.chunks.length} chunk{citation.chunks.length > 1 ? 's' : ''}</span>
+        {/* Sub-header */}
+        <div className="flex items-center gap-2 px-6 py-2.5 bg-slate-900/40 border-b border-dark-border text-xs text-slate-400 shrink-0">
+          <span className="font-semibold text-slate-300">
+            {citation.chunks.length} chunk{citation.chunks.length > 1 ? 's' : ''}
+          </span>
           <span>retrieved from this document</span>
         </div>
 
-        {/* Chunks list */}
-        <div className="p-6 space-y-3 max-h-[60vh] overflow-y-auto">
+        {/* Scrollable chunk list — ONLY this scrolls, not the page behind */}
+        <div className="p-6 space-y-3 overflow-y-auto flex-1">
           {citation.chunks.map((chunk, idx) => (
             <ChunkCard key={idx} chunk={chunk} index={idx} defaultOpen={idx === 0} />
           ))}
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-end gap-3 border-t border-dark-border px-6 py-4 bg-dark-card/40">
+        <div className="flex items-center justify-end gap-3 border-t border-dark-border px-6 py-4 bg-dark-card/40 shrink-0">
           <button
             onClick={onClose}
             className="rounded-lg bg-brand-600 px-4 py-2 text-xs font-medium text-white shadow-glow-brand hover:bg-brand-500 transition"
@@ -134,4 +171,8 @@ export function CitationModal({ citation, onClose }: CitationModalProps) {
       </div>
     </div>
   );
+
+  // Render into document.body so it's always viewport-centered
+  // and unaffected by any parent scroll containers or transforms.
+  return createPortal(modal, document.body);
 }

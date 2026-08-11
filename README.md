@@ -1,14 +1,26 @@
 # Playable Factory - Full-Stack RAG & Vector Search System
 
-> A production-grade, full-stack TypeScript Monorepo application that indexes document corpora into a vector database (PostgreSQL + pgvector), performs semantic hybrid retrieval, and generates strictly grounded answers with verifiable citations using Google Gemini and Google Embedding models.
+> A production-grade, full-stack TypeScript Monorepo application that indexes document corpora into a vector database (PostgreSQL + pgvector), performs semantic hybrid retrieval, and generates strictly grounded answers with verifiable citations using Google Gemini 3.5 Flash-Lite and Google Embedding models.
 
+[![Live Demo](https://img.shields.io/badge/Live_Demo-playable--rag.up.railway.app-success?style=for-the-badge&logo=railway)](https://playable-rag.up.railway.app)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.4-blue.svg)](https://www.typescriptlang.org/)
 [![Next.js](https://img.shields.io/badge/Next.js-14.2-black.svg)](https://nextjs.org/)
 [![Tailwind CSS](https://img.shields.io/badge/TailwindCSS-3.4-38bdf8.svg)](https://tailwindcss.com/)
 [![Express](https://img.shields.io/badge/Express-4.19-lightgrey.svg)](https://expressjs.com/)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16%20+%20pgvector-336791.svg)](https://github.com/pgvector/pgvector)
-[![Gemini](https://img.shields.io/badge/LLM-Gemini%203.5%20Flash--Lite-orange.svg)](https://ai.google.dev/)
+[![LLM](https://img.shields.io/badge/LLM-Gemini%203.5%20Flash--Lite-orange.svg)](https://ai.google.dev/)
 [![Embeddings](https://img.shields.io/badge/Embeddings-gemini--embedding--001%20(768d)-green.svg)](https://ai.google.dev/)
+
+---
+
+## 🌐 Live Deployment & Public Demo
+
+The system is already **fully deployed and live in production on Railway**! Evaluators do not need to perform any local deployment or database setup to test the complete application:
+
+🔗 **Live Application URL**: [https://playable-rag.up.railway.app](https://playable-rag.up.railway.app)
+
+- **Admin Account**: `admin@example.com` / `admin123Password!` (or 1-Click Fill on Login screen)
+- **User Account**: `user@example.com` / `user123Password!` (or 1-Click Fill on Login screen)
 
 ---
 
@@ -17,7 +29,7 @@
 This repository provides an end-to-end knowledge base retrieval and generation platform designed for game studios and playable ad production teams. It indexes engineering documentation, network specifications (AppLovin, Unity, Meta), QA checklists, changelogs, and incident postmortems, providing grounded answers with interactive citations back to the source documents.
 
 ### Key Surfaces
-1. **Chat Page (`/chat`)**: End-user interactive experience for natural language questioning, instant semantic retrieval, grounded answers with real-time SSE token streaming, and interactive source citation links that expand exact document excerpts.
+1. **Chat Page (`/chat`)**: Interactive experience for natural language questioning, instant semantic retrieval, grounded answers with real-time SSE token streaming, and interactive source citation links that expand exact document excerpts.
 2. **Admin Dashboard (`/dashboard`)**: Role-gated dashboard for corpus management, drag-and-drop document uploads (Markdown, Plain Text, PDF), real-time ingestion observability, user management, and search telemetry & query analytics.
 3. **MCP Server (`apps/mcp-server`)**: Model Context Protocol tool provider allowing external AI agents (Claude Desktop, Cursor, Cline) to perform semantic searches against the indexed corpus over stdio or HTTP with OpenID Connect (OIDC) authentication.
 
@@ -33,8 +45,8 @@ This repository provides an end-to-end knowledge base retrieval and generation p
 | **Backend API** | Express.js 4+ & TypeScript | Dedicated modular REST API with strict separation of concerns |
 | **Database & Vector Store** | PostgreSQL 16 + `pgvector` | Native ACID compliance, relational metadata, and HNSW cosine similarity search |
 | **ORM** | Drizzle ORM | Zero-runtime overhead, type-safe SQL, TypeScript migrations |
-| **LLM Provider** | Google Gemini 3.5 Flash-Lite / 2.0 Flash | Ultra-fast inference, 1M+ context window, grounded reasoning |
-| **Embedding Model** | Google `gemini-embedding-001` / `text-embedding-004` (768-dim) | State-of-the-art dense semantic embeddings |
+| **LLM Provider** | Google Gemini 3.5 Flash-Lite | Ultra-fast inference, 1M+ context window, grounded reasoning |
+| **Embedding Model** | Google `gemini-embedding-001` (768-dim) | State-of-the-art dense semantic embeddings |
 | **Ingestion Queue** | BullMQ + Redis (with async memory fallback) | Observable document chunking, retries, and job tracking |
 | **MCP Integration** | `@modelcontextprotocol/sdk` + `jose` (OIDC) | Standard tool interface with OIDC token validation |
 | **Validation & Security** | Zod + JWT + bcrypt + Helmet | Runtime schema validation and RBAC token security |
@@ -56,7 +68,7 @@ This repository provides an end-to-end knowledge base retrieval and generation p
 ### Bonus Features (All 7 Implemented)
 1. 🌟 **MCP Authentication via OIDC**: Full OpenID Connect Resource Server verification (`jose`) validating remote JWKS, `iss`, `aud`, `exp`, and `mcp:search` scopes.
 2. 🌟 **Self-Updating Pipeline (File Watcher)**: Real-time `fs.watch` daemon monitoring `/corpus` for incremental indexing and automatic vector purging on file deletions.
-3. 🌟 **Live Cloud Deployment**: Fully deployed on Railway with public demo URL and automated zero-touch database migrations.
+3. 🌟 **Live Cloud Deployment**: Fully deployed on Railway ([playable-rag.up.railway.app](https://playable-rag.up.railway.app)) with automated zero-touch database migrations.
 4. 🌟 **Advanced Retrieval Quality**:
    - Multi-query decomposition & query rewriting for informal / colloquial queries.
    - Hybrid search: pgvector HNSW cosine distance + PostgreSQL `tsvector` BM25 full-text search.
@@ -74,7 +86,7 @@ This repository provides an end-to-end knowledge base retrieval and generation p
 - **Node.js**: v18+ (tested on Node.js v20 and v22)
 - **pnpm**: v9+ (`npm install -g pnpm`)
 - **Docker** (Optional, for PostgreSQL + Redis services)
-- **Google Gemini API Key** (Free tier from [Google AI Studio](https://aistudio.google.com/))
+- **Google Gemini API Key(s)** (Free tier from [Google AI Studio](https://aistudio.google.com/))
 
 ### Step 1: Clone & Install Dependencies
 ```bash
@@ -83,19 +95,43 @@ cd PlayableFactoryCaseStudy
 pnpm install
 ```
 
-### Step 2: Configure Environment Variables
+### Step 2: Configure Environment Variables (.env)
 Copy `.env.example` to `.env` in the root directory:
 ```bash
 cp .env.example .env
 ```
-Open `.env` and supply your `GEMINI_API_KEY`:
+
+> 💡 **PRO TIP: Dual API Keys for Maximum Rate Limit Headroom**
+> 
+> We strongly recommend generating **two separate API keys** from [Google AI Studio](https://aistudio.google.com/) (one for the primary LLM/embeddings and one dedicated for the Reranker). This prevents any single key from hitting Google's free-tier 15 RPM (Requests Per Minute) rate limits during intensive queries or full benchmark evaluation runs:
+
 ```env
-GEMINI_API_KEY=your_google_gemini_api_key_here
+# ============= DATABASE (PostgreSQL + pgvector) =============
+DATABASE_URL=postgresql://dev:dev_password@localhost:5432/rag_search_dev
+REDIS_URL=redis://localhost:6379
+
+# ============= API SERVER =============
+PORT=8080
+API_PORT=8080
+API_URL=http://localhost:8080
+NODE_ENV=development
+
+# ============= AUTHENTICATION & JWT =============
+JWT_SECRET=super-secret-jwt-key-minimum-32-characters-long-example
+JWT_REFRESH_SECRET=super-secret-refresh-jwt-key-minimum-32-characters-long-example
+
+# ============= PRIMARY LLM & EMBEDDINGS (Key 1) =============
+GEMINI_API_KEY=AIzaSyYourFirstGeminiApiKeyHere...
 GEMINI_MODEL=gemini-3.5-flash-lite
 EMBEDDING_MODEL=gemini-embedding-001
-DATABASE_URL=postgresql://dev:dev_password@localhost:5432/rag_search_dev
-JWT_SECRET=super_secret_jwt_key_at_least_32_characters_long_12345
-JWT_REFRESH_SECRET=super_secret_refresh_key_at_least_32_characters_long_12345
+
+# ============= DEDICATED RERANKER (Key 2 - Recommended) =============
+GEMINI_RERANKER_API_KEY=AIzaSyYourSecondGeminiApiKeyHere...
+GEMINI_RERANKER_MODEL=gemini-3.5-flash-lite
+
+# ============= FRONTEND =============
+NEXT_PUBLIC_API_URL=http://localhost:8080
+FRONTEND_URL=http://localhost:3000
 ```
 *(Note: If `GEMINI_API_KEY` is omitted, the system automatically switches to deterministic offline mock embedding & synthesis engines so you can still build and run tests without an internet connection!)*
 
@@ -116,7 +152,7 @@ pnpm dev:all
 
 Or run them individually:
 ```bash
-pnpm --filter @rag/api dev   # API on http://localhost:8080 or http://localhost:3001
+pnpm --filter @rag/api dev   # API on http://localhost:8080
 pnpm --filter @rag/web dev   # Web UI on http://localhost:3000
 ```
 
@@ -144,7 +180,7 @@ pnpm evaluate
 ```
 
 ### Interactive UI Mode
-1. Log in as an **Admin** (`admin@example.com`).
+1. Log in as an **Admin** (`admin@example.com`) on [https://playable-rag.up.railway.app](https://playable-rag.up.railway.app).
 2. Navigate to **Dashboard -> RAG Evaluation Suite** tab.
 3. Click **"Run Live Benchmark"** to observe real-time SSE test execution across all 20 scenarios.
 4. Click **"Export JSON"** to download the comprehensive benchmark report.
@@ -171,7 +207,7 @@ Add the configuration from `.mcp-config.json` to your client configuration:
       "command": "node",
       "args": ["<PATH_TO_PROJECT>/apps/mcp-server/dist/server.js"],
       "env": {
-        "API_URL": "http://localhost:3001",
+        "API_URL": "https://playable-rag.up.railway.app",
         "OIDC_ISSUER": "https://auth.playablefactory.com/",
         "OIDC_AUDIENCE": "https://mcp.playablefactory.com",
         "OIDC_JWKS_URI": "https://auth.playablefactory.com/.well-known/jwks.json",
@@ -292,19 +328,19 @@ pnpm -r build
 
 The application is containerized with multi-stage Dockerfiles and self-migrating database routines.
 
-### Option A: Local Production Run with Docker Compose
+🔗 **Live Public Demo**: [https://playable-rag.up.railway.app](https://playable-rag.up.railway.app)
+
+### Local Production Run with Docker Compose
 ```bash
 docker compose -f docker-compose.prod.yml up --build -d
 ```
 - **Web Interface:** `http://localhost:3000`
-- **Backend API:** `http://localhost:8080` (or `3001`)
+- **Backend API:** `http://localhost:8080`
 
-### Option B: Railway Cloud Deployment
-1. **Create Project**: Go to [railway.app](https://railway.app) and create a project.
-2. **Add PostgreSQL**: Add PostgreSQL database service (pgvector is natively supported).
-3. **Deploy API Service**: Connect GitHub repo, set Dockerfile path to `Dockerfile.api`, and supply `DATABASE_URL`, `GEMINI_API_KEY`, `JWT_SECRET`, `JWT_REFRESH_SECRET`.
-4. **Deploy Web Service**: Connect GitHub repo, set Dockerfile path to `Dockerfile.web`, and set `NEXT_PUBLIC_API_URL` to your API public domain.
-5. **Auto-Migration**: The API automatically runs PostgreSQL + pgvector migrations and database seeding on boot.
+### Railway Cloud Architecture
+1. **PostgreSQL Service**: Railway managed PostgreSQL 16 with native `pgvector` extension.
+2. **API Service**: Containerized Express backend on port `8080` (`Dockerfile.api`) running zero-touch migrations and seed scripts on boot.
+3. **Web Service**: Containerized Next.js frontend (`Dockerfile.web`) serving SSR/static assets connected to the API public domain.
 
 ---
 
@@ -314,7 +350,7 @@ docker compose -f docker-compose.prod.yml up --build -d
 - [x] `README.md` with complete installation, architecture, and deployment documentation
 - [x] `AI_USAGE.md` with detailed human-AI pair programming logs
 - [x] `.env.example` configuration files and seeding scripts
-- [x] Live cloud demo deployment on Railway
+- [x] Live cloud demo deployment on Railway ([playable-rag.up.railway.app](https://playable-rag.up.railway.app))
 - [x] Model Context Protocol (MCP) server with OIDC security suite
 
 ---

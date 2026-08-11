@@ -1,11 +1,9 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, Sparkles, MessageSquare, BookOpen, Trash2, ArrowRight, Loader2, HelpCircle } from 'lucide-react';
+import { Send, Sparkles, MessageSquare, Trash2, Loader2, HelpCircle } from 'lucide-react';
 import { apiClient } from '../../../lib/api-client';
 import { ChatMessage, MessageItem } from '../../../components/ChatMessage';
-import { CitationModal } from '../../../components/CitationModal';
-import type { Citation } from '@rag/shared';
 
 const SAMPLE_QUESTIONS = [
   'What is the maximum file size for an AppLovin playable, and how does it ship?',
@@ -20,7 +18,6 @@ export default function ChatPage() {
   const [messages, setMessages] = useState<MessageItem[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
-  const [selectedCitation, setSelectedCitation] = useState<Citation | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -85,10 +82,7 @@ export default function ChatPage() {
 
   return (
     <div className="flex-1 flex flex-col max-w-6xl w-full mx-auto px-4 py-6 sm:px-6">
-      {/* Citation Details Modal */}
-      <CitationModal citation={selectedCitation} onClose={() => setSelectedCitation(null)} />
-
-      {/* Chat Container */}
+      {/* Chat Container — citation modals are rendered inside each ChatMessage */}
       <div className="flex-1 flex flex-col rounded-3xl glass-panel border border-slate-800 shadow-2xl overflow-hidden min-h-[75vh]">
         {/* Chat Header */}
         <div className="flex items-center justify-between border-b border-dark-border px-6 py-4 bg-dark-card/60">
@@ -162,7 +156,6 @@ export default function ChatPage() {
               <ChatMessage
                 key={msg.id}
                 message={msg}
-                onSelectCitation={(citation) => setSelectedCitation(citation)}
               />
             ))
           )}

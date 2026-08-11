@@ -70,13 +70,15 @@ interface EvaluationSuiteProps {
   report: BenchmarkReport | null;
   evaluating: boolean;
   onRunBenchmark: () => Promise<void>;
-  onDownloadReport: () => void;
+  onDownloadReport?: () => void;
+  onReportUpdated?: (report: BenchmarkReport) => void;
 }
 
 export function EvaluationSuite({
   report: initialReport,
   evaluating: externalEvaluating,
   onDownloadReport,
+  onReportUpdated,
 }: EvaluationSuiteProps) {
   const [report, setReport] = useState<BenchmarkReport | null>(initialReport);
   const [isEvaluating, setIsEvaluating] = useState(false);
@@ -98,6 +100,32 @@ export function EvaluationSuite({
       setReport(initialReport);
     }
   }, [initialReport]);
+
+  const handleExportJson = () => {
+    const activeReport = report || initialReport;
+    if (!activeReport) {
+      console.warn('No evaluation report available for export.');
+      return;
+    }
+
+    try {
+      const blob = new Blob([JSON.stringify(activeReport, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `rag_benchmark_report_${new Date().toISOString().slice(0, 10)}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('Failed to download evaluation report:', err);
+    }
+
+    if (onDownloadReport) {
+      onDownloadReport();
+    }
+  };
 
   // Auto-scroll live logs
   useEffect(() => {
@@ -142,9 +170,12 @@ export function EvaluationSuite({
 
         for (const line of lines) {
           const trimmed = line.trim();
-          if (trimmed.startsWith('data: ')) {
+          if (trimmed.startsWith('data:')) {
+            const jsonStr = trimmed.replace(/^data:\s*/, '');
+            if (!jsonStr) continue;
+
             try {
-              const event = JSON.parse(trimmed.slice(6));
+              const event = JSON.parse(jsonStr);
 
               if (event.type === 'scenario_start') {
                 setCurrentScenario({
@@ -154,7 +185,7 @@ export function EvaluationSuite({
                   category: event.scenario.category,
                 });
               } else if (event.type === 'scenario_complete') {
-                const s = event.scenario;
+                const s = event.scenarioResult;
                 setLiveLogs((prev) => [
                   ...prev,
                   {
@@ -173,6 +204,9 @@ export function EvaluationSuite({
               } else if (event.type === 'benchmark_complete') {
                 if (event.report) {
                   setReport(event.report);
+                  if (onReportUpdated) {
+                    onReportUpdated(event.report);
+                  }
                 }
                 setCurrentScenario(null);
               } else if (event.type === 'error') {
@@ -202,6 +236,9 @@ export function EvaluationSuite({
       try {
         const res = await apiClient.post('/api/evaluation/run');
         setReport(res);
+        if (onReportUpdated) {
+          onReportUpdated(res);
+        }
       } catch (fallbackErr) {
         console.error('Fallback benchmark also failed:', fallbackErr);
       }
@@ -254,9 +291,9 @@ export function EvaluationSuite({
 
         <div className="flex items-center gap-3 shrink-0">
           <button
-            onClick={onDownloadReport}
+            onClick={handleExportJson}
             disabled={!report || isEvaluating}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-semibold transition disabled:opacity-40 disabled:cursor-not-allowed"
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-semibold transition disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
           >
             <Download className="h-4 w-4 text-slate-400" />
             <span>Export JSON</span>

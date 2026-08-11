@@ -774,6 +774,7 @@ export default function DashboardPage() {
           evaluating={evaluating}
           onRunBenchmark={handleRunBenchmark}
           onDownloadReport={handleDownloadReport}
+          onReportUpdated={(newReport) => setEvaluationReport(newReport)}
         />
       )}
     </div>

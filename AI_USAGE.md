@@ -7,12 +7,12 @@ This document records the interactions, architectural decisions, and error corre
 ## 1. Overview of AI Assistance
 
 AI (Google Antigravity Agentic Pair Programmer with Gemini) was utilized collaboratively as a development accelerator for:
-1. **Architecture Planning & Refinement**: Analyzing case study requirements from `PlayableFactory_AI_SE_Case_RAG.pdf`, structuring a scalable TypeScript monorepo layout, and revising the design to use Express.js + Next.js 14 App Router + PostgreSQL 16 (pgvector) + Redis 7 (BullMQ).
-2. **Schema & Data Modeling**: Defining type-safe Drizzle ORM schemas for the 7 relational tables with `vector(768)` embedding columns and HNSW vector indexing.
+1. **Architecture Planning & Refinement**: Analyzing case study requirements from `PlayableFactory_AI_SE_Case_RAG.pdf`, structuring a scalable TypeScript monorepo layout, and implementing the design using Express.js + Next.js 14 App Router + PostgreSQL 16 (pgvector) + Redis 7 (BullMQ).
+2. **Schema & Data Modeling**: Defining type-safe Drizzle ORM schemas for relational tables with `vector(768)` embedding columns and HNSW vector indexing.
 3. **Core Services Implementation**: Writing the recursive semantic chunking algorithm with boundary awareness (`js-tiktoken`), Google Gemini `gemini-embedding-001` (768-dim) embedding adapter, and Gemini grounded prompt engineering.
-4. **Interactive Frontend Surfaces**: Creating the Chat interface with interactive citation modals and the Admin Operations Dashboard with telemetry charts and live document management.
-5. **Model Context Protocol (MCP)**: Structuring the standalone stdio MCP server for tool integration with Claude Desktop / Cursor.
-6. **Automated Evaluation Suite**: Building the multi-dimensional benchmark runner testing grounding, citation accuracy, network isolation, and negative abstention.
+4. **Interactive Frontend Surfaces**: Creating the Chat interface with interactive citation modals and the Admin Operations Dashboard with telemetry charts, live document management, and User Management.
+5. **Model Context Protocol (MCP)**: Structuring the standalone stdio and HTTP MCP server for tool integration with Claude Desktop / Cursor, secured with OpenID Connect (OIDC) authentication.
+6. **Automated Evaluation Suite**: Building the multi-dimensional benchmark runner testing grounding, citation accuracy, network isolation, and negative abstention across 20 empirical scenarios.
 
 ---
 
@@ -48,16 +48,13 @@ During the automated build, integration, and testing cycles, several real-world 
 - **Resolution**: Built a dual-stage Server-Sent Events (`POST /api/search/stream`) protocol using Google Gemini's `generateContentStream`. Stage 1 streams immediate retrieval metadata so source documents are visible instantly; Stage 2 streams tokens with an active typing cursor; and the concluding `done` event binds extracted citation pills and opens interactive modals seamlessly without blocking UI responsiveness.
 
 ### Issue 7: Multi-Lingual Retrieval, Context Cannibalization & Deep Reranking
-- **Problem**: Queries phrased in informal slang or different languages (e.g. *"new dev ilk hafta ne yapıyor..."* or *"lumen local server olmadan niye patlıyor..."*) initially suffered from noisy candidate pools and duplicate chunk dominance (e.g. single lengthy docs crowding out relevant onboarding/runtime passages).
+- **Problem**: Queries phrased in informal slang or different languages (e.g. *"new dev ilk hafta ne yapıyor..."* or *"ses dosyaları niye ayrı derleniyor..."*) initially suffered from noisy candidate pools and duplicate chunk dominance.
 - **Resolution**: Implemented a comprehensive 5-stage retrieval pipeline:
   1. **Query Rewriting**: `queryRewriterService` translates and maps colloquial/Turkish questions into precise technical domain queries before 768d embedding.
   2. **Candidate Retrieval**: Fetches Top 18-20 candidates via pgvector + lexical keyword search.
   3. **Gemini Batch Structured Reranker**: Evaluates candidates in a single structured JSON batch call using `[Document Title + Section + Content]` to assign factual relevance scores (0.0 to 1.0) with zero local RAM footprint.
   4. **Document Diversity & Dynamic Thresholding**: Enforces maximum 2 chunks per single document (eliminating context cannibalization) and drops noisy passages below dynamic relevance thresholds.
-  5. **Automated 16-Scenario Benchmark**: Created `evaluate-retrieval.ts` measuring Recall@5, MRR, Precision, and Negative Control Abstention.
-
-
-
+  5. **Automated 20-Scenario Benchmark**: Created `evaluation.service.ts` measuring Recall@5, MRR, Hit@1, and Negative Control Abstention.
 
 ### Issue 8: Model Context Protocol (MCP) OIDC Resource Server Authentication
 - **Problem**: The initial MCP server implementation used a static shared Bearer token (`MCP_API_TOKEN`), which is insecure for multi-client production environments, does not support key rotation, and lacks granular authorization scopes.
@@ -68,8 +65,8 @@ During the automated build, integration, and testing cycles, several real-world 
   4. **Automated Security Test Suite**: Created 8 unit tests in `oidc.test.ts` testing valid tokens, expired tokens, untrusted issuers, wrong audiences, and insufficient scopes.
 
 ### Issue 9: Self-Updating Pipeline: Automated Document Deletion & Vector Cleanup
-- **Problem**: While `watcher.service.ts` successfully detected newly added or modified documents and incrementally re-indexed them, deleting a file from `sample_dataset/corpus` previously only logged to console without purging the corresponding document records, chunks, and vector embeddings from PostgreSQL (pgvector) and the local store.
-- **Resolution**: Implemented `documentRepository.deleteByFilename(filename)` with automated CASCADE deletion across `document_chunks` and `embeddings` tables. When `watcher.service.ts` detects a file deletion event (`!fs.existsSync(fullPath)`), it immediately purges the document and its vector representations from the database, maintaining perfect synchronization between the filesystem corpus and the vector index.
+- **Problem**: While `watcher.service.ts` successfully detected newly added or modified documents and incrementally re-indexed them, deleting a file from `sample_dataset/corpus` previously only logged to console without purging the corresponding document records, chunks, and vector embeddings from PostgreSQL (pgvector).
+- **Resolution**: Implemented `documentRepository.deleteByFilename(filename)` with automated CASCADE deletion across `document_chunks` and `embeddings` tables. When `watcher.service.ts` detects a file deletion event, it immediately purges the document and its vector representations from the database, maintaining perfect synchronization between the filesystem corpus and the vector index.
 
 ### Issue 10: User Management: Cryptographic Invitation Token & Self-Registration Flow
 - **Problem**: Previously, admin user management only allowed manually assigning static passwords during account creation, without supporting secure one-click invitation links or self-service password establishment as specified in the case study requirements (*"an admin surface to invite, list, and manage users and their roles"*).
@@ -78,19 +75,24 @@ During the automated build, integration, and testing cycles, several real-world 
   2. **Admin API & UI**: Admins can generate shareable invitation links (`/register?inviteToken=...`) with custom roles (`user` / `admin`) and validity periods, copy links with one-click clipboard feedback, and view/revoke pending invitations in real-time.
   3. **Invitation Acceptance Page**: When invited users access their unique link, their email and role are verified and locked, prompting them to set their password with live security checks and seamlessly logging them into the platform.
 
+### Issue 11: Bilingual Language Concordance & Grounding Preservation
+- **Problem**: Turkish queries were translated to canonical English for vector retrieval against the English corpus, but the resulting answer was generated in English rather than the user's input language.
+- **Resolution**: Added Rule 6 (`LANGUAGE CONCORDANCE`) to the RAG system prompt: the AI grounds facts strictly on the retrieved English context while expressing the answer in the exact language the user queried in (e.g. professional Turkish for Turkish queries, English for English queries), while preserving verifiable `[Source X]` citations.
+
 ---
 
 ## 3. Human Oversight & Design Verification
 
-Every generated component was systematically verified:
-- ✅ **Unit & Integration Tests**: Executed via `vitest run` across `@rag/shared` and `@rag/api`.
+Every component was systematically validated:
+- ✅ **Unit & Integration Tests**: 26 automated tests passing across `@rag/shared`, `@rag/api`, and `@rag/mcp-server`.
 - ✅ **Static Type Checking**: Validated across all monorepo workspaces via `tsc`.
-- ✅ **Production Bundling**: Verified with `next build`, generating static prerendered routes with zero bundle warnings.
-- ✅ **Hallucination Prevention**: Verified via the evaluation test suite achieving 100% accuracy on off-corpus negative control queries.
+- ✅ **Production Bundling**: Verified with `next build`, generating optimized static prerendered routes with zero bundle warnings.
+- ✅ **Hallucination Prevention**: Verified via the 20-scenario empirical evaluation suite achieving 100% accuracy on off-corpus negative control queries.
 
 ---
 
 ## 4. Key Architectural Insights
 
-- **PostgreSQL + pgvector (768-dim)**: Combining relational tables with vector columns in PostgreSQL 16 eliminated synchronization drift and provided ACID compliance.
-- **Google Gemini Standard**: Using `gemini-flash-latest` and `gemini-embedding-001` (768-dim) delivered high retrieval grounding with zero cloud cost.
+- **PostgreSQL + pgvector (768-dim)**: Combining relational tables with vector columns in PostgreSQL 16 eliminated synchronization drift, avoided external vector SaaS costs, and provided native ACID transactions.
+- **Google Gemini Standard**: Using `gemini-3.5-flash-lite` and `gemini-embedding-001` (768-dim) delivered high retrieval grounding with sub-second streaming latencies.
+- **Defensive Engineering**: Implementing client-side error boundaries, strict SSE chunk parsing, and safe metric formatting ensured a production-grade UX without client-side exceptions.

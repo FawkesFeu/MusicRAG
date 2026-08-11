@@ -7,6 +7,7 @@ import { apiClient } from '../../../lib/api-client';
 import { AnalyticsCharts } from '../../../components/AnalyticsCharts';
 import { DocumentUploadModal } from '../../../components/DocumentUploadModal';
 import { UserManagementModal } from '../../../components/UserManagementModal';
+import { EvaluationSuite } from '../../../components/EvaluationSuite';
 import {
   UploadCloud,
   FileText,
@@ -25,6 +26,7 @@ import {
   UserPlus,
   ArrowUpRight,
   ShieldAlert,
+  Sparkles,
 } from 'lucide-react';
 import type { Document, AnalyticsStats, UserPublicProfile, UserRole } from '@rag/shared';
 
@@ -32,11 +34,13 @@ export default function DashboardPage() {
   const { user, isAdmin, loading: authLoading } = useAuth();
   const router = useRouter();
 
-  const [activeTab, setActiveTab] = useState<'corpus' | 'users'>('corpus');
+  const [activeTab, setActiveTab] = useState<'corpus' | 'evaluation' | 'users'>('corpus');
   const [documents, setDocuments] = useState<Document[]>([]);
   const [stats, setStats] = useState<AnalyticsStats | null>(null);
   const [recentQueries, setRecentQueries] = useState<any[]>([]);
   const [usersList, setUsersList] = useState<UserPublicProfile[]>([]);
+  const [evaluationReport, setEvaluationReport] = useState<any | null>(null);
+  const [evaluating, setEvaluating] = useState(false);
   const [loading, setLoading] = useState(true);
   const [isUploadOpen, setIsUploadOpen] = useState(false);
   const [isUserModalOpen, setIsUserModalOpen] = useState(false);
@@ -47,17 +51,19 @@ export default function DashboardPage() {
     try {
       setLoading(true);
       setActionError(null);
-      const [docsData, statsData, queriesData, usersData] = await Promise.all([
+      const [docsData, statsData, queriesData, usersData, evalData] = await Promise.all([
         apiClient.get('/api/documents'),
         apiClient.get('/api/analytics/stats'),
         apiClient.get('/api/analytics/queries'),
         apiClient.get('/api/auth/admin/users').catch(() => []),
+        apiClient.get('/api/evaluation/latest').catch(() => null),
       ]);
 
       setDocuments(docsData || []);
       setStats(statsData || null);
       setRecentQueries(queriesData || []);
       setUsersList(usersData || []);
+      setEvaluationReport(evalData || null);
     } catch (err) {
       console.error('Failed to fetch dashboard telemetry:', err);
     } finally {
@@ -122,6 +128,32 @@ export default function DashboardPage() {
     }
   };
 
+  const handleRunBenchmark = async () => {
+    try {
+      setEvaluating(true);
+      setActionError(null);
+      const res = await apiClient.post('/api/evaluation/run');
+      setEvaluationReport(res);
+    } catch (err: any) {
+      setActionError(err.message || 'Benchmark run failed');
+    } finally {
+      setEvaluating(false);
+    }
+  };
+
+  const handleDownloadReport = () => {
+    if (!evaluationReport) return;
+    const blob = new Blob([JSON.stringify(evaluationReport, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'evaluation_report.json';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
   if (authLoading || !isAdmin) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-dark-bg">
@@ -156,7 +188,7 @@ export default function DashboardPage() {
             </span>
           </div>
           <p className="text-sm text-slate-400 mt-1">
-            Corpus ingestion, vector indexing telemetry, and role-based access control.
+            Corpus ingestion, vector indexing telemetry, benchmark evaluation, and user management.
           </p>
         </div>
 
@@ -171,6 +203,18 @@ export default function DashboardPage() {
           >
             <Layers className="h-4 w-4" />
             <span>Corpus & Telemetry</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('evaluation')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition ${
+              activeTab === 'evaluation'
+                ? 'bg-brand-600 text-white shadow-glow-brand'
+                : 'text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <Sparkles className="h-4 w-4 text-amber-300" />
+            <span>RAG Evaluation Suite</span>
           </button>
 
           <button
@@ -468,6 +512,16 @@ export default function DashboardPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* ================= TAB 3: RAG EVALUATION SUITE ================= */}
+      {activeTab === 'evaluation' && (
+        <EvaluationSuite
+          report={evaluationReport}
+          evaluating={evaluating}
+          onRunBenchmark={handleRunBenchmark}
+          onDownloadReport={handleDownloadReport}
+        />
       )}
     </div>
   );

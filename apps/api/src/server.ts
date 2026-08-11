@@ -11,6 +11,7 @@ import searchRoutes from './routes/search.routes.js';
 import documentsRoutes from './routes/documents.routes.js';
 import ingestionRoutes from './routes/ingestion.routes.js';
 import analyticsRoutes from './routes/analytics.routes.js';
+import { evaluationRouter } from './routes/evaluation.routes.js';
 import { watcherService } from './services/watcher.service.js';
 
 export const app: Express = express();
@@ -110,6 +111,7 @@ app.use('/api/search', searchRateLimiter, searchRoutes);
 app.use('/api/documents', documentsRoutes);
 app.use('/api/ingestion', ingestionRoutes);
 app.use('/api/analytics', analyticsRoutes);
+app.use('/api/evaluation', evaluationRouter);
 
 // Global Error Handler
 app.use(errorHandler);

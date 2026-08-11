@@ -1,4 +1,13 @@
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+export function getApiBaseUrl(): string {
+  if (process.env.NEXT_PUBLIC_API_URL) {
+    return process.env.NEXT_PUBLIC_API_URL.replace(/\/$/, '');
+  }
+  // In browser, if NEXT_PUBLIC_API_URL is unset, relative URLs are proxied by Next.js rewrites
+  if (typeof window !== 'undefined') {
+    return '';
+  }
+  return 'http://localhost:3001';
+}
 
 export class ApiError extends Error {
   constructor(public statusCode: number, message: string, public code?: string) {
@@ -40,7 +49,8 @@ export const apiClient = {
       headers['Authorization'] = `Bearer ${token}`;
     }
 
-    const url = endpoint.startsWith('http') ? endpoint : `${API_URL}${endpoint}`;
+    const baseUrl = getApiBaseUrl();
+    const url = endpoint.startsWith('http') ? endpoint : `${baseUrl}${endpoint}`;
     const response = await fetch(url, {
       ...options,
       headers,
@@ -96,7 +106,8 @@ export const apiClient = {
       headers['Authorization'] = `Bearer ${token}`;
     }
 
-    const url = `${API_URL}/api/search/stream`;
+    const baseUrl = getApiBaseUrl();
+    const url = `${baseUrl}/api/search/stream`;
 
     try {
       const response = await fetch(url, {

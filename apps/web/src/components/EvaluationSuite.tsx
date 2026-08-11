@@ -24,7 +24,7 @@ import {
   AlertCircle,
   HelpCircle,
 } from 'lucide-react';
-import { apiClient, getAuthToken } from '../lib/api-client';
+import { apiClient, getAuthToken, getApiBaseUrl } from '../lib/api-client';
 
 interface EvaluationItemResult {
   id: string;
@@ -113,10 +113,10 @@ export function EvaluationSuite({
       setLiveLogs([]);
       setCurrentScenario(null);
 
-      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+      const baseUrl = getApiBaseUrl();
       const token = getAuthToken();
 
-      const response = await fetch(`${API_URL}/api/evaluation/stream`, {
+      const response = await fetch(`${baseUrl}/api/evaluation/stream`, {
         headers: {
           Authorization: token ? `Bearer ${token}` : '',
         },

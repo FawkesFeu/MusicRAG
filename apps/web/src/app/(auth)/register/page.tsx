@@ -4,7 +4,7 @@ import React, { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '../../../contexts/AuthContext';
-import { apiClient, setAuthTokens } from '../../../lib/api-client';
+import { apiClient, setAuthTokens, getApiBaseUrl } from '../../../lib/api-client';
 import {
   Sparkles,
   ArrowRight,
@@ -42,8 +42,8 @@ function RegisterForm() {
       setValidatingInvite(true);
       setInviteError(null);
       try {
-        const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
-        const res = await fetch(`${API_URL}/api/auth/invitation/${inviteToken}`);
+        const baseUrl = getApiBaseUrl();
+        const res = await fetch(`${baseUrl}/api/auth/invitation/${inviteToken}`);
         const data = await res.json();
 
         if (!res.ok || !data.success) {
@@ -84,8 +84,8 @@ function RegisterForm() {
     try {
       if (inviteToken && invitedRole) {
         // Accept invitation flow
-        const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
-        const res = await fetch(`${API_URL}/api/auth/accept-invite`, {
+        const baseUrl = getApiBaseUrl();
+        const res = await fetch(`${baseUrl}/api/auth/accept-invite`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({

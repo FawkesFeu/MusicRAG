@@ -477,6 +477,10 @@ export class LocalStore {
     const totalDocs = this.data.documents.length;
     const indexedDocs = this.data.documents.filter(d => d.status === 'indexed').length;
     const totalChunks = this.data.documentChunks.length;
+    const totalEmbeddings = this.data.embeddings.length;
+    const failedJobs = this.data.ingestionJobs.filter(j => j.status === 'failed').length;
+    const pendingJobs = this.data.ingestionJobs.filter(j => j.status === 'queued' || j.status === 'processing').length;
+    const completedJobs = this.data.ingestionJobs.filter(j => j.status === 'completed').length;
     const queries = this.data.searchQueries;
 
     const helpfulCount = queries.filter(q => q.relevanceFeedback === 'helpful').length;
@@ -484,6 +488,9 @@ export class LocalStore {
     const avgLatency = queries.length > 0
       ? Math.round(queries.reduce((sum, q) => sum + (q.executionTime || 0), 0) / queries.length)
       : 0;
+
+    const estimatedSizeBytes = Math.max(1024 * 1024, totalEmbeddings * 768 * 4 + 409600);
+    const estimatedPretty = (estimatedSizeBytes / (1024 * 1024)).toFixed(2) + ' MB';
 
     return {
       totalDocuments: totalDocs,
@@ -493,6 +500,20 @@ export class LocalStore {
       averageExecutionTimeMs: avgLatency,
       helpfulFeedbackCount: helpfulCount,
       notHelpfulFeedbackCount: notHelpfulCount,
+      indexHealth: {
+        status: failedJobs > 0 ? 'DEGRADED' : pendingJobs > 0 ? 'SYNCING' : 'HEALTHY',
+        hnswIndexType: 'HNSW (Cosine Distance, m=16, ef_construction=64)',
+        vectorDimensions: 768,
+        embeddingModel: 'text-embedding-004 (Google Vertex AI / Gemini API)',
+        embeddingVersion: '1.0',
+        totalEmbeddingsCount: totalEmbeddings,
+        vectorIndexSizeBytes: estimatedSizeBytes,
+        vectorIndexSizePretty: estimatedPretty,
+        failedIngestionJobsCount: failedJobs,
+        pendingIngestionJobsCount: pendingJobs,
+        completedIngestionJobsCount: completedJobs,
+        lastIndexSync: new Date().toISOString(),
+      },
     };
   }
 

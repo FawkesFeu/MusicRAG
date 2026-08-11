@@ -45,6 +45,21 @@ export interface SearchQueryLog {
   createdAt: string;
 }
 
+export interface IndexHealthStats {
+  status: 'HEALTHY' | 'SYNCING' | 'DEGRADED';
+  hnswIndexType: string;
+  vectorDimensions: number;
+  embeddingModel: string;
+  embeddingVersion: string;
+  totalEmbeddingsCount: number;
+  vectorIndexSizeBytes: number;
+  vectorIndexSizePretty: string;
+  failedIngestionJobsCount: number;
+  pendingIngestionJobsCount: number;
+  completedIngestionJobsCount: number;
+  lastIndexSync: string;
+}
+
 export interface AnalyticsStats {
   totalDocuments: number;
   indexedDocuments: number;
@@ -55,6 +70,7 @@ export interface AnalyticsStats {
   helpfulFeedbackCount: number;
   notHelpfulFeedbackCount: number;
   helpfulRate?: number;
+  indexHealth?: IndexHealthStats;
 }
 
 export interface StreamMetadataEvent {

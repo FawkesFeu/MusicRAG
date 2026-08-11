@@ -107,4 +107,28 @@ export const documentRepository = {
       localStore.deleteDocument(id);
     }
   },
+
+  async findByFilename(filename: string) {
+    try {
+      const baseFn = filename.includes('/') || filename.includes('\\') ? filename.split(/[/\\]/).pop()! : filename;
+      const result = await db.select().from(documents).where(eq(documents.filename, baseFn)).limit(1);
+      return result[0] || null;
+    } catch {
+      return localStore.findDocumentByFilename(filename);
+    }
+  },
+
+  async deleteByFilename(filename: string): Promise<boolean> {
+    try {
+      const baseFn = filename.includes('/') || filename.includes('\\') ? filename.split(/[/\\]/).pop()! : filename;
+      const doc = await db.select().from(documents).where(eq(documents.filename, baseFn)).limit(1);
+      if (doc[0]) {
+        await db.delete(documents).where(eq(documents.id, doc[0].id));
+        return true;
+      }
+      return false;
+    } catch {
+      return localStore.deleteDocumentByFilename(filename);
+    }
+  },
 };

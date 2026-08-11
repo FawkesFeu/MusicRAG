@@ -186,6 +186,52 @@ describe('Reranker Service', () => {
     expect(qaChunks.length).toBeLessThanOrEqual(2);
     expect(reranked.some((c) => c.filename === 'build.md')).toBe(true);
   });
+
+  it('purges document, chunks, and embeddings on deleteByFilename (Self-Updating Watcher)', async () => {
+    const { documentRepository } = await import('../repositories/document.repository.js');
+    const { chunkRepository } = await import('../repositories/chunk.repository.js');
+
+    // Create test document
+    const doc = await documentRepository.create({
+      title: 'TEMP TEST DOC',
+      filename: 'temp-test-doc.md',
+      fileType: 'markdown',
+      fileSize: 120,
+      checksum: 'test-checksum-12345',
+    });
+
+    // Create chunk and embedding
+    const chunks = await chunkRepository.createChunks([
+      {
+        documentId: doc.id,
+        chunkIndex: 0,
+        content: 'Temporary content to test deletion',
+        tokens: 10,
+      },
+    ]);
+
+    await chunkRepository.insertEmbeddings([
+      {
+        chunkId: chunks[0].id,
+        embedding: new Array(768).fill(0.1),
+      },
+    ]);
+
+    // Verify document exists
+    const foundBefore = await documentRepository.findByFilename('temp-test-doc.md');
+    expect(foundBefore).not.toBeNull();
+
+    // Perform deletion by filename (as executed by Watcher on file removal)
+    const deleted = await documentRepository.deleteByFilename('temp-test-doc.md');
+    expect(deleted).toBe(true);
+
+    // Verify document, chunks, and embeddings are completely purged
+    const foundAfter = await documentRepository.findByFilename('temp-test-doc.md');
+    expect(foundAfter).toBeNull();
+
+    const chunksAfter = await chunkRepository.findByDocumentId(doc.id);
+    expect(chunksAfter.length).toBe(0);
+  });
 });
 
 

@@ -29,7 +29,17 @@ export const watcherService = {
       console.log(`[Watcher] Detected ${eventType} event for: ${filename}`);
 
       if (!fs.existsSync(fullPath)) {
-        console.log(`[Watcher] File removed: ${filename}`);
+        console.log(`[Watcher] 🗑️ File removed from corpus: ${filename}. Purging from database & vector index...`);
+        try {
+          const deleted = await documentRepository.deleteByFilename(filename);
+          if (deleted) {
+            console.log(`[Watcher] ✅ Document "${filename}" and its vector embeddings successfully purged from database.`);
+          } else {
+            console.log(`[Watcher] ℹ️ Document "${filename}" was not found in database or already deleted.`);
+          }
+        } catch (err) {
+          console.error(`[Watcher] Error purging deleted file "${filename}":`, (err as Error).message);
+        }
         return;
       }
 

@@ -153,6 +153,20 @@ export class LocalStore {
     return this.data.documents.find(d => d.checksum === checksum) || null;
   }
 
+  findDocumentByFilename(filename: string) {
+    const baseFn = filename.includes('/') || filename.includes('\\') ? filename.split(/[/\\]/).pop()! : filename;
+    return this.data.documents.find(d => d.filename === baseFn || d.filename === filename) || null;
+  }
+
+  deleteDocumentByFilename(filename: string) {
+    const doc = this.findDocumentByFilename(filename);
+    if (doc) {
+      this.deleteDocument(doc.id);
+      return true;
+    }
+    return false;
+  }
+
   createDocument(doc: any) {
     const newDoc = {
       id: doc.id || crypto.randomUUID(),

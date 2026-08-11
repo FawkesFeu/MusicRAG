@@ -67,6 +67,10 @@ During the automated build, integration, and testing cycles, several real-world 
   3. **Dual Transport Support**: Exposes HTTP server on port 3002 with `401 Unauthorized` / `WWW-Authenticate: Bearer` error handling, plus RFC Protected Resource Metadata at `GET /.well-known/oauth-protected-resource`.
   4. **Automated Security Test Suite**: Created 8 unit tests in `oidc.test.ts` testing valid tokens, expired tokens, untrusted issuers, wrong audiences, and insufficient scopes.
 
+### Issue 9: Self-Updating Pipeline: Automated Document Deletion & Vector Cleanup
+- **Problem**: While `watcher.service.ts` successfully detected newly added or modified documents and incrementally re-indexed them, deleting a file from `sample_dataset/corpus` previously only logged to console without purging the corresponding document records, chunks, and vector embeddings from PostgreSQL (pgvector) and the local store.
+- **Resolution**: Implemented `documentRepository.deleteByFilename(filename)` with automated CASCADE deletion across `document_chunks` and `embeddings` tables. When `watcher.service.ts` detects a file deletion event (`!fs.existsSync(fullPath)`), it immediately purges the document and its vector representations from the database, maintaining perfect synchronization between the filesystem corpus and the vector index.
+
 ---
 
 ## 3. Human Oversight & Design Verification

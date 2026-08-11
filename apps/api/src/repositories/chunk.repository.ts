@@ -90,9 +90,37 @@ export const chunkRepository = {
     }
   },
 
-  async keywordSearch(query: string, topK: number = 5): Promise<SearchResult[]> {
+  async keywordSearch(queryOrKeywords: string | string[], topK: number = 10): Promise<SearchResult[]> {
     try {
-      const sanitizedQuery = `%${query.replace(/[%_]/g, '')}%`;
+      let terms: string[] = [];
+      if (Array.isArray(queryOrKeywords)) {
+        terms = queryOrKeywords.filter((t) => t && t.trim().length > 2);
+      } else {
+        terms = queryOrKeywords
+          .replace(/[^\w\s-]/g, ' ')
+          .split(/\s+/)
+          .filter(
+            (t) =>
+              t.length > 2 &&
+              !['what', 'when', 'where', 'which', 'who', 'whom', 'this', 'that', 'with', 'from', 'have', 'does'].includes(
+                t.toLowerCase()
+              )
+          );
+      }
+
+      if (terms.length === 0) return [];
+
+      const conditions: string[] = [];
+      const params: any[] = [];
+      terms.slice(0, 8).forEach((term, idx) => {
+        const pNum = idx + 1;
+        params.push(`%${term.replace(/[%_]/g, '')}%`);
+        conditions.push(`(dc.content ILIKE $${pNum} OR d.title ILIKE $${pNum})`);
+      });
+
+      params.push(topK);
+      const limitParam = `$${params.length}`;
+
       const sqlQuery = `
         SELECT 
           dc.id as chunk_id,
@@ -101,14 +129,14 @@ export const chunkRepository = {
           d.filename,
           dc.content,
           dc.metadata,
-          0.5 as similarity
+          0.6 as similarity
         FROM document_chunks dc
         JOIN documents d ON dc.document_id = d.id
         WHERE d.status = 'indexed'
-          AND (dc.content ILIKE $1 OR d.title ILIKE $1)
-        LIMIT $2;
+          AND (${conditions.join(' OR ')})
+        LIMIT ${limitParam};
       `;
-      const result = await pool.query(sqlQuery, [sanitizedQuery, topK]);
+      const result = await pool.query(sqlQuery, params);
       return result.rows.map((row: any) => ({
         chunkId: row.chunk_id,
         documentId: row.document_id,
@@ -119,7 +147,7 @@ export const chunkRepository = {
         metadata: row.metadata,
       }));
     } catch {
-      return localStore.keywordSearch(query, topK);
+      return [];
     }
   },
 };

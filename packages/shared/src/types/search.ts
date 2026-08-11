@@ -56,3 +56,19 @@ export interface AnalyticsStats {
   notHelpfulFeedbackCount: number;
   helpfulRate?: number;
 }
+
+export interface StreamMetadataEvent {
+  query: string;
+  retrievedChunks: SearchResult[];
+}
+
+export interface StreamDeltaEvent {
+  delta: string;
+}
+
+export interface StreamDoneEvent extends RAGResponse {}
+
+export interface StreamErrorEvent {
+  error: string;
+}
+

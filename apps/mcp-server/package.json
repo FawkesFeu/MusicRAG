@@ -9,16 +9,20 @@
   "scripts": {
     "dev": "tsx src/server.ts",
     "build": "tsc",
-    "start": "node dist/server.js"
+    "start": "node dist/server.js",
+    "test": "vitest run",
+    "test:field": "tsx src/field-test.ts"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.6.1",
     "@rag/shared": "workspace:*",
-    "dotenv": "^16.4.5"
+    "dotenv": "^16.4.5",
+    "jose": "^6.2.8"
   },
   "devDependencies": {
     "@types/node": "^20.12.12",
     "tsx": "^4.11.0",
-    "typescript": "^5.4.5"
+    "typescript": "^5.4.5",
+    "vitest": "^1.6.1"
   }
 }

@@ -1,0 +1,371 @@
+{
+  "timestamp": "2026-08-11T12:58:05.866Z",
+  "metrics": {
+    "totalQueries": 20,
+    "meanRecallAt5": "100.0%",
+    "meanReciprocalRank": "0.882",
+    "hitAt1Rate": "76.5%",
+    "negativeAbstentionRate": "100.0%",
+    "averageLatencyMs": 5425
+  },
+  "results": [
+    {
+      "id": "q1_turkish_onboarding",
+      "category": "Turkish / Informal",
+      "query": "new dev ilk hafta ne yapıyor lumen'da, bunu kim kontrol ediyor?",
+      "retrievedDocs": [
+        "onboarding-new-dev.md",
+        "build-pipeline.md"
+      ],
+      "hitRank": 1,
+      "recallAt5": true,
+      "reciprocalRank": 1,
+      "isNegativeControl": false,
+      "abstentionPassed": true,
+      "latencyMs": 5821,
+      "answerSnippet": "Yeni bir geliştirici ilk hafta şu aktiviteleri yapar [Source 1]: * Çevre kurulumu (environment setup"
+    },
+    {
+      "id": "q2_turkish_local_server",
+      "category": "Turkish / Informal",
+      "query": "lumen local server olmadan niye patlıyor productionda?",
+      "retrievedDocs": [
+        "build-pipeline.md",
+        "qa-checklist.md",
+        "network-specs-applovin.md",
+        "network-specs-unity-meta.md",
+        "meeting-notes/2025-09-22-production-sync.md"
+      ],
+      "hitRank": 1,
+      "recallAt5": true,
+      "reciprocalRank": 1,
+      "isNegativeControl": false,
+      "abstentionPassed": true,
+      "latencyMs": 5153,
+      "answerSnippet": "The provided document corpus does not contain information to answer this question."
+    },
+    {
+      "id": "q3_applovin_size_limit",
+      "category": "Ad Network Specs",
+      "query": "What is the maximum file size limit for AppLovin playable ads and how are assets packaged?",
+      "retrievedDocs": [
+        "network-specs-applovin.md",
+        "incident-postmortem-2026-03.md",
+        "build-pipeline.md",
+        "qa-checklist.md",
+        "network-specs-unity-meta.md"
+      ],
+      "hitRank": 1,
+      "recallAt5": true,
+      "reciprocalRank": 1,
+      "isNegativeControl": false,
+      "abstentionPassed": true,
+      "latencyMs": 5785,
+      "answerSnippet": "Based on the provided documents, the maximum file size limit for AppLovin playable ads is 5 MB for t"
+    },
+    {
+      "id": "q4_unity_meta_packaging",
+      "category": "Ad Network Specs",
+      "query": "What is the packaging difference between Unity and Meta playable ads?",
+      "retrievedDocs": [
+        "network-specs-unity-meta.md",
+        "network-specs-applovin.md",
+        "build-pipeline.md",
+        "qa-checklist.md",
+        "lumen-release-and-qa-checklist.md"
+      ],
+      "hitRank": 1,
+      "recallAt5": true,
+      "reciprocalRank": 1,
+      "isNegativeControl": false,
+      "abstentionPassed": true,
+      "latencyMs": 6009,
+      "answerSnippet": "Based on the provided context:  - **Unity** playables ship as a ZIP archive with an `index.html` ent"
+    },
+    {
+      "id": "q5_sdk_v3_migration",
+      "category": "SDK & APIs",
+      "query": "How do I initialize Lumen SDK v3 and why was lumen.track removed?",
+      "retrievedDocs": [
+        "sdk-notes-v3.md",
+        "build-pipeline.md",
+        "network-specs-applovin.md",
+        "sdk-notes-v2.md",
+        "meeting-notes/2026-01-12-production-sync.md"
+      ],
+      "hitRank": 1,
+      "recallAt5": true,
+      "reciprocalRank": 1,
+      "isNegativeControl": false,
+      "abstentionPassed": true,
+      "latencyMs": 5653,
+      "answerSnippet": "To initialize Lumen SDK v3, call `LumenSDK.init(config)` before any game code runs; this initializat"
+    },
+    {
+      "id": "q6_audio_build_pipeline",
+      "category": "Build Pipeline",
+      "query": "Why are sound assets built in a separate pass in the build pipeline?",
+      "retrievedDocs": [
+        "incident-postmortem-2026-03.md",
+        "build-pipeline.md",
+        "changelogs/lumen-build-4.2.md",
+        "network-specs-applovin.md",
+        "network-specs-unity-meta.md"
+      ],
+      "hitRank": 2,
+      "recallAt5": true,
+      "reciprocalRank": 0.5,
+      "isNegativeControl": false,
+      "abstentionPassed": true,
+      "latencyMs": 5400,
+      "answerSnippet": "Sound assets are built in a separate pass because compressing audio together with textures produced "
+    },
+    {
+      "id": "q7_march_incident_postmortem",
+      "category": "Incident Postmortems",
+      "query": "What was the root cause of the March 2026 delivery incident?",
+      "retrievedDocs": [
+        "incident-postmortem-2026-03.md",
+        "guides/incident-process.md",
+        "delivery-reports/2026-02-tidal-tycoon.md",
+        "delivery-reports/2026-06-sky-ferry.md"
+      ],
+      "hitRank": 1,
+      "recallAt5": true,
+      "reciprocalRank": 1,
+      "isNegativeControl": false,
+      "abstentionPassed": true,
+      "latencyMs": 5226,
+      "answerSnippet": "The root cause of the March 2026 delivery incident was a lumen-build update that changed the order o"
+    },
+    {
+      "id": "q8_pre_delivery_qa",
+      "category": "QA & Quality",
+      "query": "What checks must be passed on the pre-delivery QA checklist?",
+      "retrievedDocs": [
+        "qa-checklist.md",
+        "lumen-release-and-qa-checklist.md",
+        "lumen-release-and-qa-checklist.md"
+      ],
+      "hitRank": 1,
+      "recallAt5": true,
+      "reciprocalRank": 1,
+      "isNegativeControl": false,
+      "abstentionPassed": true,
+      "latencyMs": 6586,
+      "answerSnippet": "Based on the pre-delivery QA checklist, the following checks must be passed (with a delivery blocked"
+    },
+    {
+      "id": "q9_localization_languages",
+      "category": "Localization",
+      "query": "What are the required localization languages and what is the fallback behavior?",
+      "retrievedDocs": [
+        "localization-guide.md",
+        "network-specs-applovin.md",
+        "postmortems/2025-07-localization-regression.md",
+        "qa-checklist.md"
+      ],
+      "hitRank": 1,
+      "recallAt5": true,
+      "reciprocalRank": 1,
+      "isNegativeControl": false,
+      "abstentionPassed": true,
+      "latencyMs": 4329,
+      "answerSnippet": "Based on the provided documents:  * **Required Localization Languages:** Every Lumen playable ships "
+    },
+    {
+      "id": "q10_onboarding_week_two",
+      "category": "Onboarding",
+      "query": "What does a new developer do during their second week?",
+      "retrievedDocs": [
+        "onboarding-new-dev.md",
+        "qa-checklist.md"
+      ],
+      "hitRank": 1,
+      "recallAt5": true,
+      "reciprocalRank": 1,
+      "isNegativeControl": false,
+      "abstentionPassed": true,
+      "latencyMs": 5336,
+      "answerSnippet": "During their second week, a new developer works on their first real ticket, which is limited to an i"
+    },
+    {
+      "id": "q11_staging_cdn_access",
+      "category": "Onboarding & Access",
+      "query": "Who has production upload rights vs staging CDN access at Lumen?",
+      "retrievedDocs": [
+        "build-pipeline.md",
+        "onboarding-new-dev.md",
+        "lumen-release-and-qa-checklist.md",
+        "network-specs-applovin.md",
+        "guides/review-process.md"
+      ],
+      "hitRank": 2,
+      "recallAt5": true,
+      "reciprocalRank": 0.5,
+      "isNegativeControl": false,
+      "abstentionPassed": true,
+      "latencyMs": 5027,
+      "answerSnippet": "Based on the provided documentation:  * **Production upload rights** are limited to producers and th"
+    },
+    {
+      "id": "q12_turkish_audio_compression",
+      "category": "Turkish / Informal",
+      "query": "ses dosyaları niye ayrı derleniyor build pipeline'da?",
+      "retrievedDocs": [
+        "incident-postmortem-2026-03.md",
+        "build-pipeline.md",
+        "changelogs/lumen-build-4.2.md",
+        "network-specs-unity-meta.md",
+        "network-specs-applovin.md"
+      ],
+      "hitRank": 2,
+      "recallAt5": true,
+      "reciprocalRank": 0.5,
+      "isNegativeControl": false,
+      "abstentionPassed": true,
+      "latencyMs": 5334,
+      "answerSnippet": "Sound assets are built separately and audio is encoded in a dedicated pass because compressing audio"
+    },
+    {
+      "id": "q13_turkish_applovin_boyut",
+      "category": "Turkish / Informal",
+      "query": "applovin boyut kaç mb ve zip mi html mi?",
+      "retrievedDocs": [
+        "network-specs-applovin.md",
+        "incident-postmortem-2026-03.md",
+        "network-specs-unity-meta.md",
+        "qa-checklist.md",
+        "build-pipeline.md"
+      ],
+      "hitRank": 1,
+      "recallAt5": true,
+      "reciprocalRank": 1,
+      "isNegativeControl": false,
+      "abstentionPassed": true,
+      "latencyMs": 5576,
+      "answerSnippet": "Based on the provided documents:  * **Boyut (Size limit):** Maximum file size is 5 MB [Source 1]. * "
+    },
+    {
+      "id": "q14_analytics_taxonomy",
+      "category": "Analytics & Tracking",
+      "query": "What are the standard analytics events emitted by Lumen playables and when does load_complete fire?",
+      "retrievedDocs": [
+        "analytics-events.md",
+        "network-specs-unity-meta.md",
+        "build-pipeline.md",
+        "network-specs-applovin.md",
+        "qa-checklist.md"
+      ],
+      "hitRank": 1,
+      "recallAt5": true,
+      "reciprocalRank": 1,
+      "isNegativeControl": false,
+      "abstentionPassed": true,
+      "latencyMs": 5520,
+      "answerSnippet": "Lumen playables emit the following standard analytics events: - `load_complete` [Source 1] - `first_"
+    },
+    {
+      "id": "q15_ui_style_guide_cta",
+      "category": "UI & Design Specs",
+      "query": "What are the UI style guide rules for buttons, CTA contrast, and progress bars?",
+      "retrievedDocs": [
+        "style-guide-ui.md",
+        "delivery-reports/2025-11-merge-marina.md",
+        "delivery-reports/2026-02-sky-ferry.md"
+      ],
+      "hitRank": 1,
+      "recallAt5": true,
+      "reciprocalRank": 1,
+      "isNegativeControl": false,
+      "abstentionPassed": true,
+      "latencyMs": 5625,
+      "answerSnippet": "Based on the provided UI Style Guide:  * **Buttons:** A playable must have exactly one primary CTA v"
+    },
+    {
+      "id": "q16_creative_review_process",
+      "category": "Creative & Review Process",
+      "query": "Who runs the delivery review before client release and why is it from a different pod?",
+      "retrievedDocs": [
+        "qa-checklist.md",
+        "guides/review-process.md",
+        "delivery-reports/2025-05-waffle-rush.md",
+        "delivery-reports/2026-02-merge-marina.md"
+      ],
+      "hitRank": 2,
+      "recallAt5": true,
+      "reciprocalRank": 0.5,
+      "isNegativeControl": false,
+      "abstentionPassed": true,
+      "latencyMs": 5085,
+      "answerSnippet": "Based on the provided documents:  * **Who runs the delivery review:** The delivery review is run by "
+    },
+    {
+      "id": "q17_analytics_leak_postmortem",
+      "category": "Incident Postmortems",
+      "query": "Why was an AppLovin build rejected in November 2025 and how was the analytics leak fixed?",
+      "retrievedDocs": [
+        "postmortems/2025-11-analytics-leak.md",
+        "network-specs-applovin.md",
+        "qa-checklist.md"
+      ],
+      "hitRank": 1,
+      "recallAt5": true,
+      "reciprocalRank": 1,
+      "isNegativeControl": false,
+      "abstentionPassed": true,
+      "latencyMs": 5631,
+      "answerSnippet": "Based on the provided documents:  * **Reason for rejection:** An AppLovin build was rejected for an "
+    },
+    {
+      "id": "q18_negative_control_vacation",
+      "category": "Negative Control (Off-Corpus)",
+      "query": "What is the company annual vacation and sick leave policy?",
+      "retrievedDocs": [
+        "onboarding-new-dev.md",
+        "network-specs-unity-meta.md"
+      ],
+      "hitRank": null,
+      "recallAt5": false,
+      "reciprocalRank": 0,
+      "isNegativeControl": true,
+      "abstentionPassed": true,
+      "latencyMs": 5153,
+      "answerSnippet": "The provided document corpus does not contain information to answer this question."
+    },
+    {
+      "id": "q19_negative_control_salaries",
+      "category": "Negative Control (Off-Corpus)",
+      "query": "What are the software engineer salary bands and bonus structures?",
+      "retrievedDocs": [
+        "onboarding-new-dev.md",
+        "analytics-events.md",
+        "delivery-reports/2026-04-sky-ferry.md",
+        "delivery-reports/2025-11-cinder-keep.md"
+      ],
+      "hitRank": null,
+      "recallAt5": false,
+      "reciprocalRank": 0,
+      "isNegativeControl": true,
+      "abstentionPassed": true,
+      "latencyMs": 5274,
+      "answerSnippet": "The provided document corpus does not contain information to answer this question. Information regar"
+    },
+    {
+      "id": "q20_negative_control_kubernetes",
+      "category": "Negative Control (Off-Corpus)",
+      "query": "How do we configure a Kubernetes ingress controller on AWS EKS?",
+      "retrievedDocs": [
+        "delivery-reports/2025-06-sky-ferry.md",
+        "meeting-notes/2025-09-22-production-sync.md"
+      ],
+      "hitRank": null,
+      "recallAt5": false,
+      "reciprocalRank": 0,
+      "isNegativeControl": true,
+      "abstentionPassed": true,
+      "latencyMs": 4978,
+      "answerSnippet": "The provided document corpus does not contain information to answer this question."
+    }
+  ]
+}

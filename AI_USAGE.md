@@ -43,6 +43,30 @@ During the automated build, integration, and testing cycles, several real-world 
 - **Problem**: Standard `user` role accounts could see cached admin dashboard components if pressing the browser's "Back" button after visiting `/dashboard`.
 - **Resolution**: Implemented Next.js Server-Side Edge Middleware (`apps/web/src/middleware.ts`) and cryptographic token verification (`/api/auth/me`) in `AuthContext.tsx` to intercept requests before render.
 
+### Issue 6: Real-Time SSE Token Streaming & Progressive Citation Resolution
+- **Problem**: Long RAG queries generated a noticeable wait time for end-users before a complete answer appeared. Moreover, citations `[Source N]` could only be parsed after the complete answer text was generated.
+- **Resolution**: Built a dual-stage Server-Sent Events (`POST /api/search/stream`) protocol using Google Gemini's `generateContentStream`. Stage 1 streams immediate retrieval metadata so source documents are visible instantly; Stage 2 streams tokens with an active typing cursor; and the concluding `done` event binds extracted citation pills and opens interactive modals seamlessly without blocking UI responsiveness.
+
+### Issue 7: Multi-Lingual Retrieval, Context Cannibalization & Deep Reranking
+- **Problem**: Queries phrased in informal slang or different languages (e.g. *"new dev ilk hafta ne yapıyor..."* or *"lumen local server olmadan niye patlıyor..."*) initially suffered from noisy candidate pools and duplicate chunk dominance (e.g. single lengthy docs crowding out relevant onboarding/runtime passages).
+- **Resolution**: Implemented a comprehensive 5-stage retrieval pipeline:
+  1. **Query Rewriting**: `queryRewriterService` translates and maps colloquial/Turkish questions into precise technical domain queries before 768d embedding.
+  2. **Candidate Retrieval**: Fetches Top 18-20 candidates via pgvector + lexical keyword search.
+  3. **Gemini Batch Structured Reranker**: Evaluates candidates in a single structured JSON batch call using `[Document Title + Section + Content]` to assign factual relevance scores (0.0 to 1.0) with zero local RAM footprint.
+  4. **Document Diversity & Dynamic Thresholding**: Enforces maximum 2 chunks per single document (eliminating context cannibalization) and drops noisy passages below dynamic relevance thresholds.
+  5. **Automated 16-Scenario Benchmark**: Created `evaluate-retrieval.ts` measuring Recall@5, MRR, Precision, and Negative Control Abstention.
+
+
+
+
+### Issue 8: Model Context Protocol (MCP) OIDC Resource Server Authentication
+- **Problem**: The initial MCP server implementation used a static shared Bearer token (`MCP_API_TOKEN`), which is insecure for multi-client production environments, does not support key rotation, and lacks granular authorization scopes.
+- **Resolution**: Re-architected the MCP server as an OAuth 2.0 / OpenID Connect (OIDC) Resource Server using the `jose` library:
+  1. **Remote JWKS Verification**: Dynamically retrieves and caches cryptographic public keys from IdP `.well-known/jwks.json` endpoints.
+  2. **Scope Enforcement**: Requires incoming access tokens to carry the `mcp:search` scope before tool execution.
+  3. **Dual Transport Support**: Exposes HTTP server on port 3002 with `401 Unauthorized` / `WWW-Authenticate: Bearer` error handling, plus RFC Protected Resource Metadata at `GET /.well-known/oauth-protected-resource`.
+  4. **Automated Security Test Suite**: Created 8 unit tests in `oidc.test.ts` testing valid tokens, expired tokens, untrusted issuers, wrong audiences, and insufficient scopes.
+
 ---
 
 ## 3. Human Oversight & Design Verification

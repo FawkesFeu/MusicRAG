@@ -224,4 +224,127 @@ export const ragService = {
       isCorpusGrounded,
     };
   },
+
+  async generateAnswerStream(
+    query: string,
+    retrievedChunks: SearchResult[],
+    onDelta: (delta: string) => void,
+    userId?: string
+  ): Promise<RAGResponse> {
+    const startTime = Date.now();
+
+    // If no chunks retrieved or below threshold
+    if (retrievedChunks.length === 0) {
+      const fallbackAnswer = 'The provided document corpus does not contain information to answer this question.';
+      onDelta(fallbackAnswer);
+      const executionTimeMs = Date.now() - startTime;
+      if (userId) {
+        await analyticsRepository.logSearch({
+          userId,
+          query,
+          retrievedChunkCount: 0,
+          answerGenerated: false,
+          executionTime: executionTimeMs,
+        });
+      }
+
+      return {
+        query,
+        answer: fallbackAnswer,
+        citations: [],
+        retrievedChunks: [],
+        confidence: 0,
+        executionTimeMs,
+        model: env.GEMINI_MODEL,
+        isCorpusGrounded: false,
+      };
+    }
+
+    // Build structured context block with explicit entity/source separation
+    const contextText = retrievedChunks
+      .map((chunk, idx) => {
+        const sourceNum = idx + 1;
+        const meta = chunk.metadata;
+        const sectionInfo = meta?.section ? ` | Section: ${meta.section}` : '';
+        const headingInfo = meta?.heading ? ` | Heading: ${meta.heading}` : '';
+        return `=== SOURCE [Source ${sourceNum}]: ${chunk.documentTitle} (${chunk.filename}${sectionInfo}${headingInfo}) ===\n${chunk.content}\n`;
+      })
+      .join('\n');
+
+    let fullAnswer = '';
+
+    try {
+      const ai = this.getGenAI();
+      const model = ai.getGenerativeModel({
+        model: env.GEMINI_MODEL || 'gemini-flash-latest',
+        systemInstruction: GROUNDING_SYSTEM_INSTRUCTION,
+      });
+
+      const prompt = `Context Information:\n${contextText}\n\nUser Question:\n${query}\n\nAnswer the question concisely and accurately based ONLY on the context above. If the information is not present, state that clearly:`;
+
+      const streamResult = await model.generateContentStream({
+        contents: [{ role: 'user', parts: [{ text: prompt }] }],
+        generationConfig: {
+          temperature: 0.1,
+          maxOutputTokens: 1024,
+        },
+      });
+
+      for await (const chunk of streamResult.stream) {
+        const chunkText = chunk.text();
+        if (chunkText) {
+          fullAnswer += chunkText;
+          onDelta(chunkText);
+        }
+      }
+    } catch (err: any) {
+      console.error('[RAG] Gemini API streaming error:', err.message);
+      throw err;
+    }
+
+    fullAnswer = fullAnswer.trim();
+
+    let confidence = 0.95;
+    let isCorpusGrounded = true;
+
+    if (
+      fullAnswer.toLowerCase().includes('does not contain') ||
+      fullAnswer.toLowerCase().includes('not covered in corpus') ||
+      fullAnswer.toLowerCase().includes('not available in the provided corpus') ||
+      fullAnswer.toLowerCase().includes('no information')
+    ) {
+      isCorpusGrounded = false;
+      confidence = 0;
+    }
+
+    const citations = isCorpusGrounded ? extractCitations(fullAnswer, retrievedChunks) : [];
+    const executionTimeMs = Date.now() - startTime;
+
+    // Log telemetry
+    if (userId) {
+      try {
+        await analyticsRepository.logSearch({
+          userId,
+          query,
+          retrievedChunkCount: retrievedChunks.length,
+          answerGenerated: isCorpusGrounded,
+          executionTime: executionTimeMs,
+        });
+      } catch {
+        // Ignore telemetry logging errors
+      }
+    }
+
+    return {
+      query,
+      answer: fullAnswer,
+      citations,
+      retrievedChunks,
+      confidence,
+      executionTimeMs,
+      model: env.GEMINI_MODEL,
+      isCorpusGrounded,
+    };
+  },
 };
+

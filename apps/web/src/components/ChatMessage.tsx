@@ -17,6 +17,7 @@ export interface MessageItem {
   content: string;
   ragData?: RAGResponse;
   timestamp: string;
+  isStreaming?: boolean;
 }
 
 interface ChatMessageProps {
@@ -40,8 +41,6 @@ function shortLabel(title: string, filename: string): string {
   return candidate.slice(0, 26) + '…';
 }
 
-/**
- * Group raw citations by filename.
 /**
  * Group raw citations by filename, then renumber sequentially (1, 2, 3…).
  * Each file gets ONE chip. Original backend sourceIndex values are kept inside
@@ -74,6 +73,7 @@ function groupCitations(citations: Citation[]): GroupedCitation[] {
   sorted.forEach((g, i) => { g.displayIndex = i + 1; });
   return sorted;
 }
+
 
 
 /**
@@ -220,7 +220,11 @@ export function ChatMessage({ message }: ChatMessageProps) {
     <>
       {/* Per-message citation modal */}
       {selectedGroup && (
-        <CitationModal citation={selectedGroup} onClose={() => setSelectedGroup(null)} />
+        <CitationModal
+          citation={selectedGroup}
+          query={rag?.query}
+          onClose={() => setSelectedGroup(null)}
+        />
       )}
 
       <div className="flex justify-start mb-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
@@ -234,8 +238,13 @@ export function ChatMessage({ message }: ChatMessageProps) {
           {/* Card */}
           <div className="flex-1 rounded-2xl glass-card border border-slate-800 shadow-xl overflow-hidden">
 
-            {/* Top meta bar — NO confidence score */}
-            {rag && (
+            {/* Top meta bar */}
+            {message.isStreaming ? (
+              <div className="flex items-center gap-2 bg-slate-900/60 border-b border-slate-800/80 px-5 py-2.5 text-xs text-brand-300 animate-pulse">
+                <Sparkles className="h-3.5 w-3.5 animate-spin text-brand-400" />
+                <span className="font-semibold">Synthesizing grounded response in real-time...</span>
+              </div>
+            ) : rag ? (
               <div className="flex items-center gap-2 bg-slate-900/60 border-b border-slate-800/80 px-5 py-2.5 text-xs text-slate-400">
                 <span className="inline-flex items-center gap-1 font-semibold text-brand-400">
                   <Sparkles className="h-3.5 w-3.5" />
@@ -247,12 +256,12 @@ export function ChatMessage({ message }: ChatMessageProps) {
                   {rag.executionTimeMs}ms
                 </span>
               </div>
-            )}
+            ) : null}
 
             <div className="p-5 space-y-4">
 
               {/* Grounding warning */}
-              {isUnknown && (
+              {isUnknown && !message.isStreaming && (
                 <div className="flex items-start gap-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 px-4 py-3 text-xs text-amber-300">
                   <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
                   <span>
@@ -305,7 +314,11 @@ export function ChatMessage({ message }: ChatMessageProps) {
                 >
                   {message.content}
                 </ReactMarkdown>
+                {message.isStreaming && (
+                  <span className="inline-block w-2 h-4 ml-1 bg-brand-400 animate-pulse align-middle rounded-sm" />
+                )}
               </div>
+
 
               {/* ── Deduped citation chips (one per file) ── */}
               {groups.length > 0 && (

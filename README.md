@@ -153,17 +153,27 @@ The automated evaluator tests:
 
 ---
 
-## 7. Model Context Protocol (MCP) Server
+## 7. Model Context Protocol (MCP) Server with OIDC Authentication
 
-The application includes an independent MCP server that exposes semantic retrieval to external AI assistants.
+The application includes an independent **Model Context Protocol (MCP) server** secured via an **OpenID Connect (OIDC) Resource Server** architecture using the `jose` library.
 
-### Starting the MCP Server
+### Key Security Features
+- **Remote JWKS Cryptographic Verification**: Dynamically fetches and caches public keys from the IdP (Auth0, Keycloak, Azure AD) via `/.well-known/jwks.json`.
+- **Claims & Scope Enforcement**: Validates `iss` (Issuer), `aud` (Audience), `exp` (Expiration), and mandatory `mcp:search` scope.
+- **Dual Transport Support**:
+  - **HTTP Server (`http://localhost:3002`)**: Handles `/mcp` with HTTP `401 Unauthorized` and `WWW-Authenticate: Bearer` on invalid tokens.
+  - **RFC Protected Resource Discovery**: Exposes `GET /.well-known/oauth-protected-resource` conforming to MCP OAuth metadata specifications.
+  - **Stdio Transport**: Seamless local CLI & desktop agent integration.
+
+### Testing OIDC Security Suite
+To test all 8 authentication & authorization security scenarios (valid JWT, expired token, wrong issuer, insufficient scope, tampered signature):
+
 ```bash
-pnpm dev:mcp
+pnpm test:mcp-auth
 ```
 
 ### Connecting to Claude Desktop / Cursor
-Add the configuration from `.mcp-config.json` to your client configuration (e.g., `claude_desktop_config.json`):
+Add the configuration from `.mcp-config.json` to your client configuration:
 
 ```json
 {
@@ -173,16 +183,18 @@ Add the configuration from `.mcp-config.json` to your client configuration (e.g.
       "args": ["<PATH_TO_PROJECT>/apps/mcp-server/dist/server.js"],
       "env": {
         "API_URL": "http://localhost:3001",
-        "MCP_API_TOKEN": "mcp-secret-token-rag-2026"
+        "OIDC_ISSUER": "https://auth.playablefactory.com/",
+        "OIDC_AUDIENCE": "https://mcp.playablefactory.com",
+        "OIDC_JWKS_URI": "https://auth.playablefactory.com/.well-known/jwks.json",
+        "OIDC_REQUIRED_SCOPE": "mcp:search"
       }
     }
   }
 }
 ```
 
-### Exposed Tool
-- `semantic_search`: Semantically searches the indexed corpus and retrieves grounded answers with document citations.
-  - Arguments: `query` (string, required), `topK` (number, 1–20, default: 5).
+### Exposed Tools
+- `semantic_search`: Semantically searches the indexed corpus and retrieves grounded answers with document citations. Requires valid OIDC token with `mcp:search` scope.
 
 ---
 
@@ -228,6 +240,7 @@ All protected endpoints require `Authorization: Bearer <token>` or `Bearer <MCP_
     }
   }
   ```
+- `POST /api/search/stream`: Real-time Server-Sent Events (SSE) token streaming endpoint for chat UI with immediate retrieval metadata and live token deltas.
 - `POST /api/search/feedback`: Submit relevance feedback `{ queryId, feedback: 'helpful' | 'not_helpful' }`
 
 ### Documents & Ingestion (Admin Gated)
@@ -262,17 +275,29 @@ All protected endpoints require `Authorization: Bearer <token>` or `Bearer <MCP_
 4. **Self-Updating Pipeline (Bonus Feature)**:
    - Includes `watcherService` (`fs.watch`) monitoring `sample_dataset/corpus/`. When a developer edits or adds a file, it is automatically re-chunked and re-indexed incrementally without manual server restarts.
 
+5. **Query Rewriting & Multi-Lingual Normalization (Bonus Feature)**:
+   - Normalizes colloquial, multi-lingual (e.g. Turkish slang), or abbreviation-laden questions into technical search terms before vector embedding.
+
+6. **Gemini Batch Structured Reranker & Document Diversity (Bonus Feature)**:
+   - Evaluates Top 18-20 hybrid candidate chunks via a single structured batch call (`responseMimeType: 'application/json'`) scoring factual relevance (0.0 to 1.0) using document title, section heading, and content.
+   - Enforces **Document Diversity** (maximum 2 chunks per document to prevent context cannibalization).
+   - Enforces **Dynamic Thresholding** (drops irrelevant/noisy chunks below relevance threshold).
+
 ---
 
-## 10. Automated Tests & Build Verification
+## 10. Automated Tests & Benchmark Verification
 
 ```bash
-# Run unit & integration tests across all packages
+# 1. Run unit & integration test suites
 pnpm test
 
-# Build all packages & Next.js production bundle
+# 2. Run automated 16-scenario RAG benchmark (Recall@5, MRR, Precision, Negative Abstention)
+pnpm evaluate:retrieval
+
+# 3. Build all packages & Next.js production bundle
 pnpm build
 ```
+
 
 ---
 

@@ -22,8 +22,10 @@ export const env = {
   JWT_REFRESH_SECRET: process.env.JWT_REFRESH_SECRET || 'dev-refresh-secret-jwt-key-minimum-32-chars-rag-playable-factory',
   
   GEMINI_API_KEY: process.env.GEMINI_API_KEY || '',
-  GEMINI_MODEL: process.env.GEMINI_MODEL || 'gemini-2.0-flash',
-  EMBEDDING_MODEL: process.env.EMBEDDING_MODEL || 'text-embedding-004',
+  GEMINI_MODEL: process.env.GEMINI_MODEL || 'gemini-3.5-flash-lite',
+  GEMINI_RERANKER_API_KEY: process.env.GEMINI_RERANKER_API_KEY || process.env.GEMINI_API_KEY || '',
+  GEMINI_RERANKER_MODEL: process.env.GEMINI_RERANKER_MODEL || process.env.GEMINI_MODEL || 'gemini-3.5-flash-lite',
+  EMBEDDING_MODEL: process.env.EMBEDDING_MODEL || 'gemini-embedding-001',
   
   MCP_API_TOKEN: process.env.MCP_API_TOKEN || 'mcp-secret-token-rag-2026',
   MCP_PORT: parseInt(process.env.MCP_PORT || '3002', 10),

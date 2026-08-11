@@ -37,3 +37,7 @@ redis_data/
 
 # Vitest / coverage
 coverage/
+
+# Local RAG data store
+.rag_data/
+

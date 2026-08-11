@@ -126,6 +126,9 @@ importers:
       dotenv:
         specifier: ^16.4.5
         version: 16.6.1
+      jose:
+        specifier: ^6.2.8
+        version: 6.2.8
     devDependencies:
       '@types/node':
         specifier: ^20.12.12
@@ -136,6 +139,9 @@ importers:
       typescript:
         specifier: ^5.4.5
         version: 5.9.3
+      vitest:
+        specifier: ^1.6.1
+        version: 1.6.1(@types/node@20.19.43)
 
   apps/web:
     dependencies:

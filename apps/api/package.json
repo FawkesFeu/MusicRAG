@@ -10,6 +10,7 @@
     "db:migrate": "tsx src/db/migrate.ts",
     "db:seed": "tsx src/db/seed.ts",
     "evaluate": "tsx src/evaluation/evaluate-rag.ts",
+    "evaluate:retrieval": "tsx src/evaluation/evaluate-retrieval.ts",
     "test": "vitest run"
   },
   "dependencies": {

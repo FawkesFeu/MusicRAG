@@ -47,6 +47,82 @@ router.post('/', requireRole(['user', 'admin']), async (req: AuthenticatedReques
   }
 });
 
+// POST /api/search/stream (Server-Sent Events streaming)
+router.post('/stream', requireRole(['user', 'admin']), async (req: AuthenticatedRequest, res: Response, next) => {
+  try {
+    const input = searchRequestSchema.parse(req.body);
+    const userId = req.user?.userId;
+
+    // Setup SSE Headers
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache, no-transform');
+    res.setHeader('Connection', 'keep-alive');
+    res.setHeader('X-Accel-Buffering', 'no');
+    res.flushHeaders?.();
+
+    let isClientConnected = true;
+    req.on('close', () => {
+      isClientConnected = false;
+    });
+
+    const sendSSE = (event: string, data: any) => {
+      if (isClientConnected && !res.writableEnded) {
+        res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
+      }
+    };
+
+    // 1. Retrieve relevant chunks
+    const retrievedChunks = await searchService.search(input.query, {
+      topK: input.topK,
+      minSimilarity: input.minSimilarity,
+      useHybrid: true,
+    });
+
+    // Send metadata event with retrieved chunks immediately
+    sendSSE('metadata', {
+      query: input.query,
+      retrievedChunks,
+    });
+
+    // If answer generation is not requested
+    if (!input.generateAnswer) {
+      sendSSE('done', {
+        query: input.query,
+        answer: '',
+        citations: [],
+        retrievedChunks,
+        confidence: retrievedChunks.length > 0 ? 0.8 : 0,
+        executionTimeMs: 0,
+        model: 'none',
+        isCorpusGrounded: false,
+      });
+      res.end();
+      return;
+    }
+
+    // 2. Stream generation with Gemini
+    const finalResponse = await ragService.generateAnswerStream(
+      input.query,
+      retrievedChunks,
+      (delta) => {
+        sendSSE('delta', { delta });
+      },
+      userId
+    );
+
+    sendSSE('done', finalResponse);
+    res.end();
+  } catch (err: any) {
+    if (!res.headersSent) {
+      next(err);
+    } else {
+      res.write(`event: error\ndata: ${JSON.stringify({ error: err.message || 'Stream generation failed' })}\n\n`);
+      res.end();
+    }
+  }
+});
+
+
 // POST /api/search/feedback
 router.post('/feedback', async (req: AuthenticatedRequest, res: Response, next) => {
   try {

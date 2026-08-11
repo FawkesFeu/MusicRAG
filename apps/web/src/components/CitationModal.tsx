@@ -1,9 +1,10 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import { X, FileText, Copy, Check, Bookmark, ChevronDown, ChevronRight } from 'lucide-react';
+import { X, FileText, Copy, Check, Bookmark, ChevronDown, ChevronRight, Sparkles } from 'lucide-react';
 import type { Citation } from '@rag/shared';
+import { extractSearchKeywords, highlightText } from '../lib/highlight';
 
 export interface GroupedCitation {
   filename: string;
@@ -19,6 +20,7 @@ export interface GroupedCitation {
 
 interface CitationModalProps {
   citation: GroupedCitation | null;
+  query?: string;
   onClose: () => void;
 }
 
@@ -26,10 +28,14 @@ function ChunkCard({
   chunk,
   index,
   defaultOpen,
+  keywords,
+  highlightActive,
 }: {
   chunk: Citation;
   index: number;
   defaultOpen: boolean;
+  keywords: string[];
+  highlightActive: boolean;
 }) {
   const [open, setOpen] = useState(defaultOpen);
   const [copied, setCopied] = useState(false);
@@ -54,11 +60,13 @@ function ChunkCard({
             {chunk.section && (
               <span className="inline-flex items-center gap-1 rounded bg-purple-500/10 text-purple-300 border border-purple-500/20 px-2 py-0.5 shrink-0">
                 <Bookmark className="h-3 w-3" />
-                {chunk.section}
+                {highlightText(chunk.section, keywords, highlightActive)}
               </span>
             )}
             {chunk.heading && (
-              <span className="text-slate-400 truncate">{chunk.heading}</span>
+              <span className="text-slate-400 truncate">
+                {highlightText(chunk.heading, keywords, highlightActive)}
+              </span>
             )}
             {!chunk.section && !chunk.heading && (
               <span className="text-slate-500">Chunk excerpt {index + 1}</span>
@@ -91,7 +99,7 @@ function ChunkCard({
       {open && (
         <div className="bg-dark-bg/60 px-4 py-3">
           <p className="font-mono text-sm leading-relaxed text-slate-200 whitespace-pre-wrap">
-            {chunk.content}
+            {highlightText(chunk.content, keywords, highlightActive)}
           </p>
         </div>
       )}
@@ -99,7 +107,9 @@ function ChunkCard({
   );
 }
 
-export function CitationModal({ citation, onClose }: CitationModalProps) {
+export function CitationModal({ citation, query, onClose }: CitationModalProps) {
+  const [highlightActive, setHighlightActive] = useState(true);
+
   // ── Scroll lock ─────────────────────────────────────────────────────────
   useEffect(() => {
     if (!citation) return;
@@ -109,6 +119,8 @@ export function CitationModal({ citation, onClose }: CitationModalProps) {
       document.body.style.overflow = prev;
     };
   }, [citation]);
+
+  const keywords = useMemo(() => extractSearchKeywords(query), [query]);
 
   if (!citation) return null;
 
@@ -144,18 +156,55 @@ export function CitationModal({ citation, onClose }: CitationModalProps) {
           </button>
         </div>
 
-        {/* Sub-header */}
-        <div className="flex items-center gap-2 px-6 py-2.5 bg-slate-900/40 border-b border-dark-border text-xs text-slate-400 shrink-0">
-          <span className="font-semibold text-slate-300">
-            {citation.chunks.length} chunk{citation.chunks.length > 1 ? 's' : ''}
-          </span>
-          <span>retrieved from this document</span>
+        {/* Sub-header with Highlights Toggle & Query Keywords */}
+        <div className="flex flex-wrap items-center justify-between gap-2 px-6 py-2.5 bg-slate-900/40 border-b border-dark-border text-xs text-slate-400 shrink-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="font-semibold text-slate-300">
+              {citation.chunks.length} chunk{citation.chunks.length > 1 ? 's' : ''}
+            </span>
+            <span>retrieved</span>
+            {keywords.length > 0 && (
+              <div className="flex items-center gap-1.5 ml-2 pl-2 border-l border-slate-700">
+                <span className="text-[11px] text-slate-500">Query terms:</span>
+                {keywords.slice(0, 4).map((kw, i) => (
+                  <span
+                    key={i}
+                    className="rounded-md bg-amber-400/15 text-amber-300 border border-amber-400/30 px-1.5 py-0.5 text-[10px] font-semibold"
+                  >
+                    {kw}
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {keywords.length > 0 && (
+            <button
+              onClick={() => setHighlightActive((prev) => !prev)}
+              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-medium border transition ${
+                highlightActive
+                  ? 'bg-amber-400/10 text-amber-300 border-amber-400/30 hover:bg-amber-400/20'
+                  : 'bg-slate-800 text-slate-400 border-slate-700 hover:text-slate-200'
+              }`}
+              title="Toggle search term highlighting"
+            >
+              <Sparkles className="h-3 w-3 text-amber-400" />
+              <span>Highlights: {highlightActive ? 'ON' : 'OFF'}</span>
+            </button>
+          )}
         </div>
 
         {/* Scrollable chunk list — ONLY this scrolls, not the page behind */}
         <div className="p-6 space-y-3 overflow-y-auto flex-1">
           {citation.chunks.map((chunk, idx) => (
-            <ChunkCard key={idx} chunk={chunk} index={idx} defaultOpen={idx === 0} />
+            <ChunkCard
+              key={idx}
+              chunk={chunk}
+              index={idx}
+              defaultOpen={idx === 0}
+              keywords={keywords}
+              highlightActive={highlightActive}
+            />
           ))}
         </div>
 
@@ -176,3 +225,4 @@ export function CitationModal({ citation, onClose }: CitationModalProps) {
   // and unaffected by any parent scroll containers or transforms.
   return createPortal(modal, document.body);
 }
+

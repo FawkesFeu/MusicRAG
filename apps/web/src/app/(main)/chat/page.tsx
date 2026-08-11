@@ -20,6 +20,14 @@ export default function ChatPage() {
   const [loading, setLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  // Typewriter pacing refs
+  const tokenQueueRef = useRef<string[]>([]);
+  const isTypingRef = useRef<boolean>(false);
+  const pendingDoneRef = useRef<any>(null);
+  const typingTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const activeMsgIdRef = useRef<string | null>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
+
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
@@ -28,15 +36,89 @@ export default function ChatPage() {
     scrollToBottom();
   }, [messages, loading]);
 
+  // Clean up timers on unmount
+  useEffect(() => {
+    return () => {
+      if (typingTimerRef.current) clearTimeout(typingTimerRef.current);
+      if (abortControllerRef.current) abortControllerRef.current.abort();
+    };
+  }, []);
+
+  const stopTypewriter = () => {
+    if (typingTimerRef.current) {
+      clearTimeout(typingTimerRef.current);
+      typingTimerRef.current = null;
+    }
+    isTypingRef.current = false;
+    tokenQueueRef.current = [];
+    pendingDoneRef.current = null;
+    activeMsgIdRef.current = null;
+  };
+
+  const startTypewriter = (assistantMsgId: string) => {
+    activeMsgIdRef.current = assistantMsgId;
+    if (isTypingRef.current) return;
+    isTypingRef.current = true;
+
+    const processNext = () => {
+      if (tokenQueueRef.current.length > 0) {
+        // Pop 1-2 tokens (speeds up slightly if queue grows large to stay responsive)
+        const qLen = tokenQueueRef.current.length;
+        const popCount = qLen > 30 ? 3 : qLen > 12 ? 2 : 1;
+        const nextTokens = tokenQueueRef.current.splice(0, popCount).join('');
+
+        setMessages((prev) =>
+          prev.map((msg) =>
+            msg.id === assistantMsgId
+              ? { ...msg, content: msg.content + nextTokens }
+              : msg
+          )
+        );
+
+        // Word-by-word typewriter pacing (~20-25ms)
+        const delay = qLen > 25 ? 12 : 22;
+        typingTimerRef.current = setTimeout(processNext, delay);
+      } else if (pendingDoneRef.current) {
+        // Queue is drained and final response data arrived
+        const doneData = pendingDoneRef.current;
+        pendingDoneRef.current = null;
+        isTypingRef.current = false;
+        activeMsgIdRef.current = null;
+
+        setMessages((prev) =>
+          prev.map((msg) =>
+            msg.id === assistantMsgId
+              ? {
+                  ...msg,
+                  content: doneData.answer || msg.content,
+                  ragData: doneData,
+                  isStreaming: false,
+                }
+              : msg
+          )
+        );
+        setLoading(false);
+      } else {
+        // Queue temporarily empty, check again shortly for next network delta
+        typingTimerRef.current = setTimeout(processNext, 25);
+      }
+    };
+
+    processNext();
+  };
+
   const handleSendMessage = async (queryText?: string) => {
     const text = queryText || input.trim();
     if (!text || loading) return;
+
+    // Reset previous typewriter if any
+    stopTypewriter();
 
     setInput('');
     const userMsgId = `user-${Date.now()}`;
     const assistantMsgId = `asst-${Date.now()}`;
 
-    // Add user message
+    // 1. Add user message
     const userMessage: MessageItem = {
       id: userMsgId,
       role: 'user',
@@ -44,41 +126,85 @@ export default function ChatPage() {
       timestamp: new Date().toISOString(),
     };
 
-    setMessages((prev) => [...prev, userMessage]);
+    // 2. Add placeholder streaming assistant message
+    const initialAssistantMessage: MessageItem = {
+      id: assistantMsgId,
+      role: 'assistant',
+      content: '',
+      isStreaming: true,
+      timestamp: new Date().toISOString(),
+    };
+
+    setMessages((prev) => [...prev, userMessage, initialAssistantMessage]);
     setLoading(true);
 
+    const abortController = new AbortController();
+    abortControllerRef.current = abortController;
+
     try {
-      const response = await apiClient.post('/api/search', {
-        query: text,
-        topK: 5,
-        generateAnswer: true,
-      });
-
-      const assistantMessage: MessageItem = {
-        id: assistantMsgId,
-        role: 'assistant',
-        content: response.answer,
-        ragData: response,
-        timestamp: new Date().toISOString(),
-      };
-
-      setMessages((prev) => [...prev, assistantMessage]);
+      await apiClient.streamSearch(
+        {
+          query: text,
+          topK: 5,
+          generateAnswer: true,
+        },
+        {
+          onMetadata: (_meta) => {
+            // Metadata arrived
+          },
+          onDelta: (delta) => {
+            // Tokenize delta into words & whitespace for natural typewriter pacing
+            const tokens = delta.match(/\s+|[^\s]+/g) || [delta];
+            tokenQueueRef.current.push(...tokens);
+            startTypewriter(assistantMsgId);
+          },
+          onDone: (doneData) => {
+            pendingDoneRef.current = doneData;
+            // Ensure typewriter starts/continues to drain remaining tokens
+            startTypewriter(assistantMsgId);
+          },
+          onError: (err) => {
+            stopTypewriter();
+            setMessages((prev) =>
+              prev.map((msg) =>
+                msg.id === assistantMsgId
+                  ? {
+                      ...msg,
+                      content: `Error retrieving grounded answer: ${err.message || 'Network error'}. Please ensure the backend is running.`,
+                      isStreaming: false,
+                    }
+                  : msg
+              )
+            );
+            setLoading(false);
+          },
+        },
+        abortController.signal
+      );
     } catch (err: any) {
-      const errorMessage: MessageItem = {
-        id: assistantMsgId,
-        role: 'assistant',
-        content: `Error retrieving grounded answer: ${err.message || 'Network error'}. Please ensure the backend is running.`,
-        timestamp: new Date().toISOString(),
-      };
-      setMessages((prev) => [...prev, errorMessage]);
-    } finally {
+      stopTypewriter();
+      setMessages((prev) =>
+        prev.map((msg) =>
+          msg.id === assistantMsgId
+            ? {
+                ...msg,
+                content: `Error retrieving grounded answer: ${err.message || 'Network error'}. Please ensure the backend is running.`,
+                isStreaming: false,
+              }
+            : msg
+        )
+      );
       setLoading(false);
     }
   };
 
   const handleClearHistory = () => {
+    stopTypewriter();
+    if (abortControllerRef.current) abortControllerRef.current.abort();
     setMessages([]);
+    setLoading(false);
   };
+
 
   return (
     <div className="flex-1 flex flex-col max-w-6xl w-full mx-auto px-4 py-6 sm:px-6">
@@ -160,7 +286,7 @@ export default function ChatPage() {
             ))
           )}
 
-          {loading && (
+          {loading && !messages.some((m) => m.isStreaming) && (
             <div className="flex items-center gap-3 p-4 rounded-2xl glass-card border border-slate-800 animate-pulse text-xs text-brand-300">
               <Loader2 className="h-4 w-4 animate-spin text-brand-400" />
               <span>Searching pgvector & synthesizing grounded answer with citations...</span>

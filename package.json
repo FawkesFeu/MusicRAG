@@ -12,6 +12,9 @@
     "db:migrate": "pnpm --filter @rag/api db:migrate",
     "db:seed": "pnpm --filter @rag/api db:seed",
     "evaluate": "pnpm --filter @rag/api evaluate",
+    "evaluate:retrieval": "pnpm --filter @rag/api evaluate:retrieval",
+    "test:mcp-auth": "pnpm --filter @rag/mcp-server test",
+    "test:mcp-field": "pnpm --filter @rag/mcp-server test:field",
     "test": "pnpm -r test"
   },
   "devDependencies": {

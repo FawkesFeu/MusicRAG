@@ -426,14 +426,14 @@ export function EvaluationSuite({
       {/* Metrics Grid */}
       {report && (
         <>
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-2 lg:grid-cols-5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4">
             {/* Recall@5 */}
-            <div className="rounded-2xl glass-panel p-5 border border-dark-border space-y-1">
+            <div className="rounded-2xl glass-panel p-4 sm:p-5 border border-dark-border space-y-1">
               <div className="flex items-center justify-between text-slate-400 text-xs font-semibold uppercase tracking-wider">
                 <span>Factual Recall@5</span>
                 <Target className="h-4 w-4 text-emerald-400" />
               </div>
-              <p className="text-2xl font-bold text-emerald-400">{report.metrics.meanRecallAt5}</p>
+              <p className="text-xl sm:text-2xl font-bold text-emerald-400">{report.metrics.meanRecallAt5}</p>
               <div className="w-full bg-slate-800 rounded-full h-1.5 mt-2">
                 <div
                   className="bg-emerald-400 h-1.5 rounded-full"
@@ -444,12 +444,12 @@ export function EvaluationSuite({
             </div>
 
             {/* Hit@1 Accuracy */}
-            <div className="rounded-2xl glass-panel p-5 border border-dark-border space-y-1">
+            <div className="rounded-2xl glass-panel p-4 sm:p-5 border border-dark-border space-y-1">
               <div className="flex items-center justify-between text-slate-400 text-xs font-semibold uppercase tracking-wider">
                 <span>Hit@1 Accuracy</span>
                 <Award className="h-4 w-4 text-cyan-400" />
               </div>
-              <p className="text-2xl font-bold text-cyan-400">{report.metrics.hitAt1Rate}</p>
+              <p className="text-xl sm:text-2xl font-bold text-cyan-400">{report.metrics.hitAt1Rate}</p>
               <div className="w-full bg-slate-800 rounded-full h-1.5 mt-2">
                 <div
                   className="bg-cyan-400 h-1.5 rounded-full"
@@ -460,12 +460,12 @@ export function EvaluationSuite({
             </div>
 
             {/* MRR */}
-            <div className="rounded-2xl glass-panel p-5 border border-dark-border space-y-1">
+            <div className="rounded-2xl glass-panel p-4 sm:p-5 border border-dark-border space-y-1">
               <div className="flex items-center justify-between text-slate-400 text-xs font-semibold uppercase tracking-wider">
                 <span>Mean Reciprocal Rank</span>
                 <TrendingUp className="h-4 w-4 text-purple-400" />
               </div>
-              <p className="text-2xl font-bold text-purple-400">{report.metrics.meanReciprocalRank}</p>
+              <p className="text-xl sm:text-2xl font-bold text-purple-400">{report.metrics.meanReciprocalRank}</p>
               <div className="w-full bg-slate-800 rounded-full h-1.5 mt-2">
                 <div
                   className="bg-purple-400 h-1.5 rounded-full"
@@ -476,12 +476,12 @@ export function EvaluationSuite({
             </div>
 
             {/* Negative Abstention */}
-            <div className="rounded-2xl glass-panel p-5 border border-dark-border space-y-1">
+            <div className="rounded-2xl glass-panel p-4 sm:p-5 border border-dark-border space-y-1">
               <div className="flex items-center justify-between text-slate-400 text-xs font-semibold uppercase tracking-wider">
                 <span>Negative Abstention</span>
                 <ShieldCheck className="h-4 w-4 text-blue-400" />
               </div>
-              <p className="text-2xl font-bold text-blue-400">{report.metrics.negativeAbstentionRate}</p>
+              <p className="text-xl sm:text-2xl font-bold text-blue-400">{report.metrics.negativeAbstentionRate}</p>
               <div className="w-full bg-slate-800 rounded-full h-1.5 mt-2">
                 <div
                   className="bg-blue-400 h-1.5 rounded-full"
@@ -492,12 +492,12 @@ export function EvaluationSuite({
             </div>
 
             {/* Mean Latency */}
-            <div className="rounded-2xl glass-panel p-5 border border-dark-border space-y-1">
+            <div className="rounded-2xl glass-panel p-4 sm:p-5 border border-dark-border space-y-1 col-span-1 sm:col-span-2 lg:col-span-1">
               <div className="flex items-center justify-between text-slate-400 text-xs font-semibold uppercase tracking-wider">
                 <span>Mean Latency</span>
                 <Clock className="h-4 w-4 text-amber-400" />
               </div>
-              <p className="text-2xl font-bold text-amber-400">{report.metrics.averageLatencyMs} ms</p>
+              <p className="text-xl sm:text-2xl font-bold text-amber-400">{report.metrics.averageLatencyMs} ms</p>
               <p className="text-[11px] text-slate-400 pt-2">Includes rerank & generation</p>
             </div>
           </div>

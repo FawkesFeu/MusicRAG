@@ -23,6 +23,7 @@ import {
   Check,
   AlertCircle,
   HelpCircle,
+  RotateCw,
 } from 'lucide-react';
 import { apiClient, getAuthToken, getApiBaseUrl } from '../lib/api-client';
 
@@ -80,7 +81,7 @@ export function EvaluationSuite({
   onDownloadReport,
   onReportUpdated,
 }: EvaluationSuiteProps) {
-  const [report, setReport] = useState<BenchmarkReport | null>(initialReport);
+  const [report, setReport] = useState<BenchmarkReport | null>(initialReport || null);
   const [isEvaluating, setIsEvaluating] = useState(false);
   const [currentScenario, setCurrentScenario] = useState<{
     index: number;
@@ -93,10 +94,11 @@ export function EvaluationSuite({
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
   const [searchFilter, setSearchFilter] = useState('');
+  const [renderError, setRenderError] = useState<string | null>(null);
   const logContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (initialReport) {
+    if (initialReport && typeof initialReport === 'object' && Array.isArray(initialReport.results)) {
       setReport(initialReport);
     }
   }, [initialReport]);
@@ -123,15 +125,19 @@ export function EvaluationSuite({
     }
 
     if (onDownloadReport) {
-      onDownloadReport();
+      try {
+        onDownloadReport();
+      } catch {}
     }
   };
 
-  // Auto-scroll live logs
+  // Auto-scroll live logs safely
   useEffect(() => {
-    if (logContainerRef.current) {
-      logContainerRef.current.scrollTop = logContainerRef.current.scrollHeight;
-    }
+    try {
+      if (logContainerRef.current) {
+        logContainerRef.current.scrollTop = logContainerRef.current.scrollHeight;
+      }
+    } catch {}
   }, [liveLogs, currentScenario]);
 
   const runLiveStreamingBenchmark = async () => {
@@ -140,6 +146,7 @@ export function EvaluationSuite({
       setShowConsole(true);
       setLiveLogs([]);
       setCurrentScenario(null);
+      setRenderError(null);
 
       const baseUrl = getApiBaseUrl();
       const token = getAuthToken();
@@ -171,38 +178,38 @@ export function EvaluationSuite({
         for (const line of lines) {
           const trimmed = line.trim();
           if (trimmed.startsWith('data:')) {
-            const jsonStr = trimmed.replace(/^data:\s*/, '');
+            const jsonStr = trimmed.replace(/^data:\s*/, '').trim();
             if (!jsonStr) continue;
 
             try {
               const event = JSON.parse(jsonStr);
 
-              if (event.type === 'scenario_start') {
+              if (event.type === 'scenario_start' && event.scenario) {
                 setCurrentScenario({
-                  index: event.currentIndex,
-                  total: event.total,
-                  query: event.scenario.query,
-                  category: event.scenario.category,
+                  index: event.currentIndex || 1,
+                  total: event.total || 20,
+                  query: event.scenario.query || '',
+                  category: event.scenario.category || 'General',
                 });
-              } else if (event.type === 'scenario_complete') {
+              } else if (event.type === 'scenario_complete' && event.scenarioResult) {
                 const s = event.scenarioResult;
                 setLiveLogs((prev) => [
                   ...prev,
                   {
-                    id: s.id,
-                    index: event.currentIndex,
-                    total: event.total,
-                    query: s.query,
-                    category: s.category,
-                    status: s.status,
-                    hitRank: s.hitRank,
-                    latencyMs: s.latencyMs,
-                    answerSnippet: s.answerSnippet,
-                    retrievedDocs: s.retrievedDocs,
+                    id: s.id || `sc-${Date.now()}-${prev.length}`,
+                    index: event.currentIndex || prev.length + 1,
+                    total: event.total || 20,
+                    query: s.query || '',
+                    category: s.category || 'General',
+                    status: s.status || 'passed',
+                    hitRank: s.hitRank ?? null,
+                    latencyMs: s.latencyMs || 0,
+                    answerSnippet: s.answerSnippet || '',
+                    retrievedDocs: Array.isArray(s.retrievedDocs) ? s.retrievedDocs : [],
                   },
                 ]);
               } else if (event.type === 'benchmark_complete') {
-                if (event.report) {
+                if (event.report && Array.isArray(event.report.results)) {
                   setReport(event.report);
                   if (onReportUpdated) {
                     onReportUpdated(event.report);
@@ -214,7 +221,7 @@ export function EvaluationSuite({
                 setLiveLogs((prev) => [
                   ...prev,
                   {
-                    id: `err-${Date.now()}`,
+                    id: `err-${Date.now()}-${prev.length}`,
                     index: prev.length + 1,
                     total: 20,
                     query: 'Benchmark Error',
@@ -224,23 +231,26 @@ export function EvaluationSuite({
                   },
                 ]);
               }
-            } catch (err) {
-              console.error('Error parsing SSE event chunk:', err);
+            } catch (chunkErr) {
+              console.error('Error parsing SSE event chunk:', chunkErr);
             }
           }
         }
       }
     } catch (err: any) {
-      console.error('Streaming benchmark failed:', err);
+      console.error('Streaming benchmark failed, attempting fallback HTTP run:', err);
       // Fallback to standard HTTP run
       try {
         const res = await apiClient.post('/api/evaluation/run');
-        setReport(res);
-        if (onReportUpdated) {
-          onReportUpdated(res);
+        if (res && Array.isArray(res.results)) {
+          setReport(res);
+          if (onReportUpdated) {
+            onReportUpdated(res);
+          }
         }
-      } catch (fallbackErr) {
+      } catch (fallbackErr: any) {
         console.error('Fallback benchmark also failed:', fallbackErr);
+        setRenderError(fallbackErr.message || 'Evaluation failed to complete');
       }
     } finally {
       setIsEvaluating(false);
@@ -248,27 +258,57 @@ export function EvaluationSuite({
     }
   };
 
-  const categories = report
-    ? ['all', ...Array.from(new Set(report.results.map((r) => r.category)))]
-    : ['all'];
+  const categories =
+    report && Array.isArray(report.results)
+      ? ['all', ...Array.from(new Set(report.results.map((r) => r?.category).filter(Boolean)))]
+      : ['all'];
 
-  const filteredResults = report
-    ? report.results.filter((r) => {
-        const matchesCat = selectedCategory === 'all' || r.category === selectedCategory;
-        const matchesQuery =
-          !searchFilter ||
-          r.query.toLowerCase().includes(searchFilter.toLowerCase()) ||
-          r.id.toLowerCase().includes(searchFilter.toLowerCase());
-        return matchesCat && matchesQuery;
-      })
-    : [];
+  const filteredResults =
+    report && Array.isArray(report.results)
+      ? report.results.filter((r) => {
+          if (!r) return false;
+          const matchesCat = selectedCategory === 'all' || r.category === selectedCategory;
+          const q = r.query || '';
+          const id = r.id || '';
+          const matchesQuery =
+            !searchFilter ||
+            q.toLowerCase().includes(searchFilter.toLowerCase()) ||
+            id.toLowerCase().includes(searchFilter.toLowerCase());
+          return matchesCat && matchesQuery;
+        })
+      : [];
 
   const completedCount = liveLogs.length;
+  const totalScenarios = currentScenario?.total || 20;
   const progressPercent = currentScenario
-    ? Math.round((completedCount / currentScenario.total) * 100)
+    ? Math.min(100, Math.round((completedCount / totalScenarios) * 100))
     : isEvaluating
+    ? Math.min(100, Math.round((completedCount / 20) * 100))
+    : completedCount > 0
     ? 100
     : 0;
+
+  if (renderError) {
+    return (
+      <div className="rounded-2xl glass-panel p-6 border border-red-500/30 bg-red-500/10 text-white space-y-3">
+        <div className="flex items-center gap-2 text-red-400 font-semibold">
+          <AlertCircle className="h-5 w-5" />
+          <span>Evaluation Encountered an Error</span>
+        </div>
+        <p className="text-sm text-slate-300">{renderError}</p>
+        <button
+          onClick={() => {
+            setRenderError(null);
+            runLiveStreamingBenchmark();
+          }}
+          className="flex items-center gap-2 px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-500 text-white text-xs font-semibold"
+        >
+          <RotateCw className="h-4 w-4" />
+          <span>Retry Benchmark</span>
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -302,7 +342,7 @@ export function EvaluationSuite({
           <button
             onClick={runLiveStreamingBenchmark}
             disabled={isEvaluating}
-            className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-semibold text-xs shadow-glow-brand transition disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-semibold text-xs shadow-glow-brand transition disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
           >
             {isEvaluating ? (
               <>
@@ -352,7 +392,7 @@ export function EvaluationSuite({
               </span>
               <button
                 onClick={() => setShowConsole(!showConsole)}
-                className="text-slate-400 hover:text-white p-1 rounded-lg transition"
+                className="text-slate-400 hover:text-white p-1 rounded-lg transition cursor-pointer"
               >
                 {showConsole ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
               </button>
@@ -397,11 +437,11 @@ export function EvaluationSuite({
                 </div>
               )}
 
-              {liveLogs.map((log) => {
+              {liveLogs.map((log, lIdx) => {
                 const isPass = log.status === 'passed' || log.status === 'abstained';
                 return (
                   <div
-                    key={log.id}
+                    key={log.id ? `${log.id}-${lIdx}` : `log-${lIdx}`}
                     className={`p-3 rounded-xl border transition-all flex flex-col gap-1.5 ${
                       isPass
                         ? 'bg-dark-card/60 border-slate-800 hover:border-slate-700'
@@ -461,7 +501,7 @@ export function EvaluationSuite({
       )}
 
       {/* Metrics Grid */}
-      {report && (
+      {report && report.metrics && (
         <>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4">
             {/* Recall@5 */}
@@ -470,11 +510,11 @@ export function EvaluationSuite({
                 <span>Factual Recall@5</span>
                 <Target className="h-4 w-4 text-emerald-400" />
               </div>
-              <p className="text-xl sm:text-2xl font-bold text-emerald-400">{report.metrics.meanRecallAt5}</p>
+              <p className="text-xl sm:text-2xl font-bold text-emerald-400">{report.metrics.meanRecallAt5 || '0%'}</p>
               <div className="w-full bg-slate-800 rounded-full h-1.5 mt-2">
                 <div
                   className="bg-emerald-400 h-1.5 rounded-full"
-                  style={{ width: report.metrics.meanRecallAt5 }}
+                  style={{ width: report.metrics.meanRecallAt5 || '0%' }}
                 />
               </div>
               <p className="text-[11px] text-slate-400 pt-1">Grounding target: &gt;90%</p>
@@ -486,11 +526,11 @@ export function EvaluationSuite({
                 <span>Hit@1 Accuracy</span>
                 <Award className="h-4 w-4 text-cyan-400" />
               </div>
-              <p className="text-xl sm:text-2xl font-bold text-cyan-400">{report.metrics.hitAt1Rate}</p>
+              <p className="text-xl sm:text-2xl font-bold text-cyan-400">{report.metrics.hitAt1Rate || '0%'}</p>
               <div className="w-full bg-slate-800 rounded-full h-1.5 mt-2">
                 <div
                   className="bg-cyan-400 h-1.5 rounded-full"
-                  style={{ width: report.metrics.hitAt1Rate }}
+                  style={{ width: report.metrics.hitAt1Rate || '0%' }}
                 />
               </div>
               <p className="text-[11px] text-slate-400 pt-1">Top-1 Grounded precision</p>
@@ -502,11 +542,11 @@ export function EvaluationSuite({
                 <span>Mean Reciprocal Rank</span>
                 <TrendingUp className="h-4 w-4 text-purple-400" />
               </div>
-              <p className="text-xl sm:text-2xl font-bold text-purple-400">{report.metrics.meanReciprocalRank}</p>
+              <p className="text-xl sm:text-2xl font-bold text-purple-400">{report.metrics.meanReciprocalRank || '0.000'}</p>
               <div className="w-full bg-slate-800 rounded-full h-1.5 mt-2">
                 <div
                   className="bg-purple-400 h-1.5 rounded-full"
-                  style={{ width: `${Math.min(100, parseFloat(report.metrics.meanReciprocalRank) * 100)}%` }}
+                  style={{ width: `${Math.min(100, (parseFloat(report.metrics.meanReciprocalRank || '0') || 0) * 100)}%` }}
                 />
               </div>
               <p className="text-[11px] text-slate-400 pt-1">Rank quality score (0 to 1.0)</p>
@@ -518,11 +558,11 @@ export function EvaluationSuite({
                 <span>Negative Abstention</span>
                 <ShieldCheck className="h-4 w-4 text-blue-400" />
               </div>
-              <p className="text-xl sm:text-2xl font-bold text-blue-400">{report.metrics.negativeAbstentionRate}</p>
+              <p className="text-xl sm:text-2xl font-bold text-blue-400">{report.metrics.negativeAbstentionRate || '0%'}</p>
               <div className="w-full bg-slate-800 rounded-full h-1.5 mt-2">
                 <div
                   className="bg-blue-400 h-1.5 rounded-full"
-                  style={{ width: report.metrics.negativeAbstentionRate }}
+                  style={{ width: report.metrics.negativeAbstentionRate || '0%' }}
                 />
               </div>
               <p className="text-[11px] text-slate-400 pt-1">Zero-hallucination rate</p>
@@ -534,7 +574,7 @@ export function EvaluationSuite({
                 <span>Mean Latency</span>
                 <Clock className="h-4 w-4 text-amber-400" />
               </div>
-              <p className="text-xl sm:text-2xl font-bold text-amber-400">{report.metrics.averageLatencyMs} ms</p>
+              <p className="text-xl sm:text-2xl font-bold text-amber-400">{report.metrics.averageLatencyMs ?? 0} ms</p>
               <p className="text-[11px] text-slate-400 pt-2">Includes rerank & generation</p>
             </div>
           </div>
@@ -548,7 +588,7 @@ export function EvaluationSuite({
                   <button
                     key={cat}
                     onClick={() => setSelectedCategory(cat)}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition ${
+                    className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition cursor-pointer ${
                       selectedCategory === cat
                         ? 'bg-brand-600 text-white'
                         : 'bg-dark-card text-slate-400 hover:text-slate-200 border border-dark-border'
@@ -589,20 +629,21 @@ export function EvaluationSuite({
                 <tbody className="divide-y divide-dark-border">
                   {filteredResults.map((item, idx) => {
                     const isExpanded = expandedRow === item.id;
+                    const retrievedDocs = Array.isArray(item.retrievedDocs) ? item.retrievedDocs : [];
                     return (
-                      <React.Fragment key={item.id}>
+                      <React.Fragment key={item.id || `item-${idx}`}>
                         <tr
                           onClick={() => setExpandedRow(isExpanded ? null : item.id)}
                           className="hover:bg-dark-card/40 cursor-pointer transition"
                         >
                           <td className="px-5 py-4 font-mono text-slate-500">{idx + 1}</td>
                           <td className="px-5 py-4 font-medium text-white max-w-md">
-                            <p className="line-clamp-2">{item.query}</p>
+                            <p className="line-clamp-2">{item.query || ''}</p>
                             <span className="text-[10px] text-slate-500 font-mono">{item.id}</span>
                           </td>
                           <td className="px-5 py-4">
                             <span className="px-2.5 py-1 rounded-lg bg-slate-800 text-slate-300 border border-slate-700 text-[11px]">
-                              {item.category}
+                              {item.category || 'General'}
                             </span>
                           </td>
                           <td className="px-5 py-4 text-center">
@@ -652,7 +693,7 @@ export function EvaluationSuite({
                             )}
                           </td>
                           <td className="px-5 py-4 text-right font-mono text-slate-400">
-                            {item.latencyMs}ms
+                            {item.latencyMs ?? 0}ms
                           </td>
                           <td className="px-5 py-4 text-center text-slate-400">
                             {isExpanded ? (
@@ -674,7 +715,7 @@ export function EvaluationSuite({
                                     <span>Retrieved Document Candidates:</span>
                                   </h4>
                                   <div className="space-y-1">
-                                    {item.retrievedDocs.map((doc, dIdx) => (
+                                    {retrievedDocs.map((doc, dIdx) => (
                                       <div
                                         key={dIdx}
                                         className="flex items-center gap-2 p-1.5 rounded-lg bg-dark-bg/80 border border-dark-border font-mono text-[11px] text-slate-300"
@@ -683,7 +724,7 @@ export function EvaluationSuite({
                                         <span>{doc}</span>
                                       </div>
                                     ))}
-                                    {item.retrievedDocs.length === 0 && (
+                                    {retrievedDocs.length === 0 && (
                                       <p className="text-slate-500 italic">No candidates retrieved.</p>
                                     )}
                                   </div>
@@ -694,7 +735,7 @@ export function EvaluationSuite({
                                     Generated Grounded Answer Snippet:
                                   </h4>
                                   <div className="p-3 rounded-lg bg-dark-bg/80 border border-dark-border text-slate-300 leading-relaxed font-sans text-xs">
-                                    &ldquo;{item.answerSnippet}...&rdquo;
+                                    &ldquo;{item.answerSnippet || ''}...&rdquo;
                                   </div>
                                 </div>
                               </div>

@@ -22,6 +22,10 @@ The system is already **fully deployed and live in production on Railway**! Eval
 - **Admin Account**: `admin@example.com` / `admin123Password!` (or 1-Click Fill on Login screen)
 - **User Account**: `user@example.com` / `user123Password!` (or 1-Click Fill on Login screen)
 
+> [!WARNING]
+> **API Rate Limits Notice**:
+> Since the live system operates on Google Gemini API free-tier quotas (15 RPM - Requests Per Minute), rapid back-to-back queries or concurrent benchmark runs by multiple users may temporarily trigger rate limits (HTTP 429). If this occurs, please wait ~30 seconds before retrying, or configure your own dedicated API keys as detailed in the local setup guide below.
+
 ---
 
 ## 1. Project Description

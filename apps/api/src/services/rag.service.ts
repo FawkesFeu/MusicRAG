@@ -14,7 +14,7 @@ Your task is to answer the user's question accurately, concisely, and factually 
 CORE RULES:
 1. STRICT GROUNDING & ABSTENTION:
    - Base your answer ONLY on the explicit statements in the provided context sources.
-   - If the provided context does not contain sufficient evidence to answer the question, state clearly and concisely: "The provided document corpus does not contain information to answer this question."
+   - If the provided context does not contain sufficient evidence to answer the question, state clearly and concisely: "The provided document corpus does not contain information to answer this question." (or in Turkish if asked in Turkish: "Verilen doküman havuzunda bu soruya yanıt verebilecek bilgi bulunmamaktadır.")
    - Never answer from external or general knowledge. If a query asks about a specific entity, ad network, or metric (e.g. Google Ads, Meta MRAID, employee salaries) that is not in the context, explicitly state that information for that specific entity is not available in the corpus.
 
 2. EXPLICIT FACT vs. INFERENCE DISTINCTION:
@@ -31,14 +31,24 @@ CORE RULES:
 
 5. CITATION INVARIANTS:
    - Explicitly cite the specific source using [Source 1], [Source 2], etc. notation for every factual claim.
-   - Only cite sources that directly support the claim.`;
+   - Only cite sources that directly support the claim.
+
+6. LANGUAGE CONCORDANCE (BILINGUAL MATCHING):
+   - Always respond in the SAME language that the user asked the question in.
+   - If the user asks in Turkish, provide the grounded answer in natural, professional Turkish.
+   - If the user asks in English, provide the answer in English.
+   - Regardless of language, ALWAYS retain the standard citation markers like [Source 1], [Source 2] attached directly to your factual statements.`;
 
 export function extractCitations(answer: string, retrievedChunks: SearchResult[]): Citation[] {
+  const low = answer.toLowerCase();
   const isOffCorpus =
-    answer.toLowerCase().includes('does not contain') ||
-    answer.toLowerCase().includes('not covered in corpus') ||
-    answer.toLowerCase().includes('not available in the provided corpus') ||
-    answer.toLowerCase().includes('no information');
+    low.includes('does not contain') ||
+    low.includes('not covered in corpus') ||
+    low.includes('not available in the provided corpus') ||
+    low.includes('no information') ||
+    low.includes('bilgi bulunmamaktadır') ||
+    low.includes('içermemektedir') ||
+    low.includes('yer almamaktadır');
 
   if (isOffCorpus) {
     return [];
@@ -185,11 +195,15 @@ export const ragService = {
       throw err;
     }
 
+    const lowAnswer = answer.toLowerCase();
     if (
-      answer.toLowerCase().includes('does not contain') ||
-      answer.toLowerCase().includes('not covered in corpus') ||
-      answer.toLowerCase().includes('not available in the provided corpus') ||
-      answer.toLowerCase().includes('no information')
+      lowAnswer.includes('does not contain') ||
+      lowAnswer.includes('not covered in corpus') ||
+      lowAnswer.includes('not available in the provided corpus') ||
+      lowAnswer.includes('no information') ||
+      lowAnswer.includes('bilgi bulunmamaktadır') ||
+      lowAnswer.includes('içermemektedir') ||
+      lowAnswer.includes('yer almamaktadır')
     ) {
       isCorpusGrounded = false;
       confidence = 0;
@@ -307,11 +321,15 @@ export const ragService = {
     let confidence = 0.95;
     let isCorpusGrounded = true;
 
+    const lowFull = fullAnswer.toLowerCase();
     if (
-      fullAnswer.toLowerCase().includes('does not contain') ||
-      fullAnswer.toLowerCase().includes('not covered in corpus') ||
-      fullAnswer.toLowerCase().includes('not available in the provided corpus') ||
-      fullAnswer.toLowerCase().includes('no information')
+      lowFull.includes('does not contain') ||
+      lowFull.includes('not covered in corpus') ||
+      lowFull.includes('not available in the provided corpus') ||
+      lowFull.includes('no information') ||
+      lowFull.includes('bilgi bulunmamaktadır') ||
+      lowFull.includes('içermemektedir') ||
+      lowFull.includes('yer almamaktadır')
     ) {
       isCorpusGrounded = false;
       confidence = 0;

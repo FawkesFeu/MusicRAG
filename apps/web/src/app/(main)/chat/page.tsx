@@ -258,7 +258,7 @@ export default function ChatPage() {
               <h2 className="text-sm sm:text-base font-bold text-white flex items-center gap-1.5 sm:gap-2">
                 <span>Knowledge Assistant</span>
                 <span className="rounded-full bg-brand-500/10 text-brand-400 border border-brand-500/20 px-2 py-0.5 text-[9px] sm:text-[10px] font-semibold">
-                  Gemini 2.0 Flash
+                  Gemini 3.5 Flash-Lite
                 </span>
               </h2>
               <p className="hidden sm:block text-xs text-slate-400">

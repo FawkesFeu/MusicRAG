@@ -121,7 +121,7 @@ app.use(errorHandler);
 // Start server if run directly
 if (process.env.NODE_ENV !== 'test') {
   const PORT = env.API_PORT;
-  app.listen(PORT, () => {
+  app.listen(PORT, '0.0.0.0', () => {
     console.log(`====================================================`);
     console.log(`🚀 Playable Factory RAG API running on port ${PORT}`);
     console.log(`📡 URL: http://localhost:${PORT}`);

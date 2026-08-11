@@ -51,6 +51,8 @@ export interface AnalyticsStats {
   totalChunks: number;
   queriesLast24h: number;
   averageExecutionTimeMs: number;
+  avgLatencyMs?: number;
   helpfulFeedbackCount: number;
   notHelpfulFeedbackCount: number;
+  helpfulRate?: number;
 }

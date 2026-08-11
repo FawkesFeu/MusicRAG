@@ -3,25 +3,37 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { useAuth } from '../../../contexts/AuthContext';
-import { Sparkles, ArrowRight, AlertCircle, Loader2 } from 'lucide-react';
-import type { UserRole } from '@rag/shared';
+import { Sparkles, ArrowRight, AlertCircle, Loader2, CheckCircle2, XCircle, ShieldCheck } from 'lucide-react';
 
 export default function RegisterPage() {
   const { register } = useAuth();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [role, setRole] = useState<UserRole>('user');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Live Password Strength Criteria Checks
+  const hasMinLength = password.length >= 8;
+  const hasUpper = /[A-Z]/.test(password);
+  const hasLower = /[a-z]/.test(password);
+  const hasNumber = /[0-9]/.test(password);
+  const hasSymbol = /[!@#$%^&*()_+\-=\[\]{}|;:,.<>?]/.test(password);
+  const isPasswordValid = hasMinLength && hasUpper && hasLower && hasNumber && hasSymbol;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+
+    if (!isPasswordValid) {
+      setError('Please satisfy all password security requirements below.');
+      return;
+    }
+
     setLoading(true);
 
     try {
-      await register(name, email, password, role);
+      await register(name, email, password);
     } catch (err: any) {
       setError(err.message || 'Registration failed.');
     } finally {
@@ -40,7 +52,7 @@ export default function RegisterPage() {
           </div>
           <h1 className="text-2xl font-bold tracking-tight text-white">Create Account</h1>
           <p className="text-xs text-slate-400">
-            Join Playable Factory Vector Search platform
+            Join Playable Factory Vector Search Platform
           </p>
         </div>
 
@@ -61,7 +73,7 @@ export default function RegisterPage() {
               required
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="Baran AI"
+              placeholder="Developer Name"
               className="w-full rounded-xl border border-dark-border bg-dark-card px-4 py-2.5 text-sm text-white placeholder-slate-500 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
             />
           </div>
@@ -87,41 +99,53 @@ export default function RegisterPage() {
             <input
               type="password"
               required
-              minLength={6}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••"
+              placeholder="Min 8 chars, uppercase, number, symbol"
               className="w-full rounded-xl border border-dark-border bg-dark-card px-4 py-2.5 text-sm text-white placeholder-slate-500 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
             />
-          </div>
 
-          <div>
-            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">
-              Role
-            </label>
-            <select
-              value={role}
-              onChange={(e) => setRole(e.target.value as UserRole)}
-              className="w-full rounded-xl border border-dark-border bg-dark-card px-4 py-2.5 text-sm text-white focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
-            >
-              <option value="user">Standard User (Search & Chat)</option>
-              <option value="admin">Admin (Manage Corpus & Dashboard)</option>
-            </select>
+            {/* Live Password Checklist */}
+            {password.length > 0 && (
+              <div className="mt-2.5 space-y-1.5 rounded-xl bg-slate-900/60 p-3 border border-slate-800 text-[11px]">
+                <div className="flex items-center gap-1.5 text-slate-400 mb-1">
+                  <ShieldCheck className="h-3.5 w-3.5 text-brand-400" />
+                  <span className="font-semibold text-slate-300">Password Policy Requirements:</span>
+                </div>
+                <div className={`flex items-center gap-1.5 ${hasMinLength ? 'text-emerald-400' : 'text-slate-500'}`}>
+                  {hasMinLength ? <CheckCircle2 className="h-3.5 w-3.5" /> : <XCircle className="h-3.5 w-3.5" />}
+                  <span>At least 8 characters</span>
+                </div>
+                <div className={`flex items-center gap-1.5 ${hasUpper ? 'text-emerald-400' : 'text-slate-500'}`}>
+                  {hasUpper ? <CheckCircle2 className="h-3.5 w-3.5" /> : <XCircle className="h-3.5 w-3.5" />}
+                  <span>At least one uppercase letter (A-Z)</span>
+                </div>
+                <div className={`flex items-center gap-1.5 ${hasLower ? 'text-emerald-400' : 'text-slate-500'}`}>
+                  {hasLower ? <CheckCircle2 className="h-3.5 w-3.5" /> : <XCircle className="h-3.5 w-3.5" />}
+                  <span>At least one lowercase letter (a-z)</span>
+                </div>
+                <div className={`flex items-center gap-1.5 ${hasNumber ? 'text-emerald-400' : 'text-slate-500'}`}>
+                  {hasNumber ? <CheckCircle2 className="h-3.5 w-3.5" /> : <XCircle className="h-3.5 w-3.5" />}
+                  <span>At least one number (0-9)</span>
+                </div>
+                <div className={`flex items-center gap-1.5 ${hasSymbol ? 'text-emerald-400' : 'text-slate-500'}`}>
+                  {hasSymbol ? <CheckCircle2 className="h-3.5 w-3.5" /> : <XCircle className="h-3.5 w-3.5" />}
+                  <span>At least one special symbol (!@#$%^&*...)</span>
+                </div>
+              </div>
+            )}
           </div>
 
           <button
             type="submit"
             disabled={loading}
-            className="flex w-full items-center justify-center gap-2 rounded-xl bg-brand-600 py-3 text-sm font-semibold text-white shadow-glow-brand hover:bg-brand-500 disabled:opacity-50 transition"
+            className="w-full flex items-center justify-center gap-2 rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white shadow-glow-brand transition hover:bg-brand-500 disabled:opacity-50"
           >
             {loading ? (
-              <>
-                <Loader2 className="h-4 w-4 animate-spin" />
-                Creating Account...
-              </>
+              <Loader2 className="h-4 w-4 animate-spin" />
             ) : (
               <>
-                Create Account
+                <span>Create Standard Account</span>
                 <ArrowRight className="h-4 w-4" />
               </>
             )}
@@ -130,7 +154,7 @@ export default function RegisterPage() {
 
         <div className="text-center text-xs text-slate-400 pt-2 border-t border-slate-800">
           Already have an account?{' '}
-          <Link href="/login" className="font-semibold text-brand-400 hover:underline">
+          <Link href="/login" className="font-semibold text-brand-400 hover:text-brand-300">
             Sign In
           </Link>
         </div>

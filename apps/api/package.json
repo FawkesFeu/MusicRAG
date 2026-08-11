@@ -21,6 +21,8 @@
     "dotenv": "^16.4.5",
     "drizzle-orm": "^0.30.10",
     "express": "^4.19.2",
+    "express-rate-limit": "^8.6.2",
+    "helmet": "^8.3.0",
     "ioredis": "^5.4.1",
     "js-tiktoken": "^1.0.12",
     "jsonwebtoken": "^9.0.2",

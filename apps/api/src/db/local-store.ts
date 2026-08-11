@@ -103,6 +103,24 @@ export class LocalStore {
     return this.data.users;
   }
 
+  updateUserRole(id: string, role: string) {
+    const user = this.data.users.find((u) => u.id === id);
+    if (user) {
+      user.role = role;
+      user.updatedAt = new Date().toISOString();
+      this.save();
+      return user;
+    }
+    return null;
+  }
+
+  deleteUser(id: string) {
+    this.data.users = this.data.users.filter((u) => u.id !== id);
+    this.data.sessions = this.data.sessions.filter((s) => s.userId !== id);
+    this.save();
+    return true;
+  }
+
   // Sessions
   createSession(userId: string, refreshToken: string, expiresAt: Date) {
     const session = {
@@ -206,6 +224,10 @@ export class LocalStore {
     this.data.documentChunks = this.data.documentChunks.filter(c => c.documentId !== documentId);
     this.data.embeddings = this.data.embeddings.filter(e => !chunkIds.includes(e.chunkId));
     this.save();
+  }
+
+  findChunksByDocumentId(documentId: string) {
+    return this.data.documentChunks.filter(c => c.documentId === documentId);
   }
 
   insertEmbeddings(items: { chunkId: string; embedding: number[]; modelName?: string }[]) {

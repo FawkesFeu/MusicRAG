@@ -2,7 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import crypto from 'crypto';
 import { fileURLToPath } from 'url';
-import { db, isPostgresActive } from './index.js';
+import { db } from './client.js';
 import { localStore } from './local-store.js';
 import { authService } from '../services/auth.service.js';
 import { userRepository } from '../repositories/user.repository.js';
@@ -44,7 +44,7 @@ export async function seedDatabase() {
       adminUser = await userRepository.create({
         email: DEMO_CREDENTIALS.ADMIN.email,
         name: DEMO_CREDENTIALS.ADMIN.name,
-        passwordHash,
+        hashedPassword: passwordHash,
         role: 'admin',
       });
       console.log(`  ✅ Created Admin User: ${DEMO_CREDENTIALS.ADMIN.email}`);
@@ -58,7 +58,7 @@ export async function seedDatabase() {
       standardUser = await userRepository.create({
         email: DEMO_CREDENTIALS.USER.email,
         name: DEMO_CREDENTIALS.USER.name,
-        passwordHash,
+        hashedPassword: passwordHash,
         role: 'user',
       });
       console.log(`  ✅ Created Standard User: ${DEMO_CREDENTIALS.USER.email}`);

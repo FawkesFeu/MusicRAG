@@ -1,6 +1,11 @@
 import express, { Express } from 'express';
 import { env } from './config/env.js';
 import { corsMiddleware, errorHandler } from './middleware/index.js';
+import {
+  securityHeadersMiddleware,
+  generalApiLimiter,
+  searchRateLimiter,
+} from './middleware/security.middleware.js';
 import authRoutes from './routes/auth.routes.js';
 import searchRoutes from './routes/search.routes.js';
 import documentsRoutes from './routes/documents.routes.js';
@@ -10,10 +15,19 @@ import { watcherService } from './services/watcher.service.js';
 
 export const app: Express = express();
 
-// Global Middlewares
+// Trust reverse proxies
+app.set('trust proxy', 1);
+
+// 1. Security Headers (Helmet CSP, HSTS, X-Frame-Options, NoSniff)
+app.use(securityHeadersMiddleware);
+
+// 2. Global Middlewares
 app.use(corsMiddleware);
 app.use(express.json({ limit: '25mb' }));
 app.use(express.urlencoded({ extended: true, limit: '25mb' }));
+
+// 3. Global API Rate Limiting
+app.use('/api', generalApiLimiter);
 
 // Root endpoint (Welcome & API Overview)
 app.get('/', (req, res) => {
@@ -37,7 +51,7 @@ app.get('/', (req, res) => {
       </head>
       <body>
         <div class="card">
-          <div class="badge">● API Server is Running</div>
+          <div class="badge">● API Server is Running (Secured)</div>
           <h1>Playable Factory RAG API</h1>
           <p>Express.js + Google Gemini + pgvector Vector Search Engine</p>
           <p>Backend API port: <strong>3001</strong></p>
@@ -46,6 +60,7 @@ app.get('/', (req, res) => {
             <strong>Key Endpoints:</strong><br>
             • POST /api/search (Semantic Search & Grounded RAG)<br>
             • POST /api/auth/login | /register (Authentication)<br>
+            • GET  /api/auth/admin/users (Admin User Management)<br>
             • GET  /api/documents (Corpus Documents)<br>
             • GET  /api/analytics/stats (Search Telemetry)<br>
             • GET  /health (System Health)
@@ -77,7 +92,7 @@ app.get('/', (req, res) => {
 });
 
 // Health check endpoint
-app.get('/health', (req, res) => {
+app.get('/health', (_req, res) => {
   res.json({
     status: 'healthy',
     timestamp: new Date().toISOString(),
@@ -91,7 +106,7 @@ app.get('/health', (req, res) => {
 
 // API Routes
 app.use('/api/auth', authRoutes);
-app.use('/api/search', searchRoutes);
+app.use('/api/search', searchRateLimiter, searchRoutes);
 app.use('/api/documents', documentsRoutes);
 app.use('/api/ingestion', ingestionRoutes);
 app.use('/api/analytics', analyticsRoutes);
@@ -106,6 +121,7 @@ if (process.env.NODE_ENV !== 'test') {
     console.log(`====================================================`);
     console.log(`🚀 Playable Factory RAG API running on port ${PORT}`);
     console.log(`📡 URL: http://localhost:${PORT}`);
+    console.log(`🛡️ Security: Helmet CSP + HSTS + Brute-Force Rate Limiting Active`);
     console.log(`🤖 LLM: Google ${env.GEMINI_MODEL}`);
     console.log(`🧠 Embedding: Google ${env.EMBEDDING_MODEL} (768-dim)`);
     console.log(`====================================================`);

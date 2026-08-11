@@ -12,7 +12,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
   isAdmin: boolean;
   login: (email: string, password: string) => Promise<void>;
-  register: (name: string, email: string, password: string, role?: UserRole) => Promise<void>;
+  register: (name: string, email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   refreshProfile: () => Promise<void>;
 }
@@ -106,8 +106,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [router]);
 
-  const register = useCallback(async (name: string, email: string, password: string, role: UserRole = 'user') => {
-    const res = await apiClient.post('/api/auth/register', { name, email, password, role });
+  const register = useCallback(async (name: string, email: string, password: string) => {
+    const res = await apiClient.post('/api/auth/register', { name, email, password });
     const { accessToken, refreshToken, user: newUser } = res;
 
     setAuthTokens(accessToken, refreshToken);

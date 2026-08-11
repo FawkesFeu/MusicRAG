@@ -1,22 +1,17 @@
 FROM node:20-alpine AS base
 
-# Install PNPM
-RUN corepack enable && corepack prepare pnpm@latest --activate
+# Install PNPM v9 matching lockfileVersion 9.0
+RUN npm install -g pnpm@9
 
 WORKDIR /app
 
-# Copy root workspace configurations
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.json ./
-
-# Copy required workspace packages
 COPY packages/shared ./packages/shared
 COPY apps/api ./apps/api
 COPY sample_dataset ./sample_dataset
 
-# Install all workspace dependencies
 RUN pnpm install --frozen-lockfile
 
-# Build shared types package and API package
 RUN pnpm --filter @rag/shared build
 RUN pnpm --filter @rag/api build
 

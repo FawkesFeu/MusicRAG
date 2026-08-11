@@ -1,6 +1,10 @@
 export function getApiBaseUrl(): string {
   if (process.env.NEXT_PUBLIC_API_URL) {
-    return process.env.NEXT_PUBLIC_API_URL.replace(/\/$/, '');
+    let url = process.env.NEXT_PUBLIC_API_URL.trim();
+    if (!url.startsWith('http://') && !url.startsWith('https://')) {
+      url = `https://${url}`;
+    }
+    return url.replace(/\/$/, '');
   }
   // In browser, if NEXT_PUBLIC_API_URL is unset, relative URLs are proxied by Next.js rewrites
   if (typeof window !== 'undefined') {

@@ -13,7 +13,18 @@ import { DEMO_CREDENTIALS } from '@rag/shared';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const CORPUS_DIR = path.resolve(__dirname, '../../../../sample_dataset/corpus');
+
+function getCorpusDir(): string {
+  const candidates = [
+    path.resolve(process.cwd(), 'sample_dataset/corpus'),
+    path.resolve(process.cwd(), '../../sample_dataset/corpus'),
+    path.resolve(__dirname, '../../../../sample_dataset/corpus'),
+    path.resolve(__dirname, '../../../sample_dataset/corpus'),
+  ];
+  return candidates.find((c) => fs.existsSync(c)) || candidates[0];
+}
+
+const CORPUS_DIR = getCorpusDir();
 
 function getAllFilesRecursively(dir: string): string[] {
   const entries = fs.readdirSync(dir, { withFileTypes: true });

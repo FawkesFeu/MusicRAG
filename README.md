@@ -288,19 +288,78 @@ All protected endpoints require `Authorization: Bearer <token>` or `Bearer <MCP_
 ## 10. Automated Tests & Benchmark Verification
 
 ```bash
-# 1. Run unit & integration test suites
+# 1. Run unit & integration test suites (26 passing tests across all packages)
 pnpm test
 
-# 2. Run automated 16-scenario RAG benchmark (Recall@5, MRR, Precision, Negative Abstention)
+# 2. Run automated RAG benchmark (Recall@5, MRR, Precision, Negative Abstention)
 pnpm evaluate:retrieval
 
 # 3. Build all packages & Next.js production bundle
 pnpm build
 ```
 
+---
+
+## 11. Production & Cloud Deployment Guide (Railway / Docker)
+
+The application is containerized with production-ready multi-stage Dockerfiles and self-migrating database routines.
+
+### Option A: 1-Click Local / Server Production Run with Docker Compose
+To run the full stack (PostgreSQL with pgvector, API server, and Next.js frontend) with a single command:
+
+```bash
+# Copy example environment variables
+cp .env.example .env
+
+# Fill in your GEMINI_API_KEY in .env, then run:
+docker compose -f docker-compose.prod.yml up --build -d
+```
+- **Web Interface:** `http://localhost:3000`
+- **Backend API:** `http://localhost:3001`
+- **PostgreSQL pgvector:** `localhost:5432`
 
 ---
 
-## 11. License
+### Option B: Railway Cloud Deployment (Step-by-Step)
+
+Railway provides native PostgreSQL + pgvector support and zero-config monorepo Docker deployment:
+
+1. **Create a New Project on Railway**:
+   - Go to [railway.app](https://railway.app) and create a new project.
+
+2. **Add PostgreSQL Database**:
+   - Click **+ New** -> **Database** -> **Add PostgreSQL**.
+   - Under database settings or query editor, ensure pgvector is enabled (Railway enables it automatically).
+
+3. **Deploy Backend API Service**:
+   - Click **+ New** -> **GitHub Repo** -> select this repository.
+   - Go to **Settings**:
+     - **Dockerfile Path**: `Dockerfile.api` (or `apps/api/Dockerfile`)
+   - Go to **Variables**:
+     - `DATABASE_URL`: `${{Postgres.DATABASE_URL}}` (select Reference from PostgreSQL service)
+     - `GEMINI_API_KEY`: `<YOUR_GOOGLE_GEMINI_API_KEY>`
+     - `GEMINI_MODEL`: `gemini-3.5-flash-lite`
+     - `EMBEDDING_MODEL`: `gemini-embedding-001`
+     - `JWT_SECRET`: `<MINIMUM_32_CHARACTERS_SECRET>`
+     - `JWT_REFRESH_SECRET`: `<MINIMUM_32_CHARACTERS_SECRET>`
+     - `NODE_ENV`: `production`
+   - Under **Networking**, click **Generate Domain** to get your public API URL (e.g. `https://rag-api-production.up.railway.app`).
+
+4. **Deploy Frontend Web Service**:
+   - Click **+ New** -> **GitHub Repo** -> select this repository.
+   - Go to **Settings**:
+     - **Dockerfile Path**: `Dockerfile.web` (or `apps/web/Dockerfile`)
+   - Go to **Variables**:
+     - `NEXT_PUBLIC_API_URL`: `<YOUR_RAILWAY_API_URL_FROM_STEP_3>` (e.g. `https://rag-api-production.up.railway.app`)
+     - `NODE_ENV`: `production`
+   - Under **Networking**, click **Generate Domain** to get your public Web URL (e.g. `https://rag-web-production.up.railway.app`).
+
+5. **Zero-Touch Automatic Database Setup**:
+   - The backend API automatically executes `CREATE EXTENSION IF NOT EXISTS vector;`, creates all relational and HNSW vector tables, and seeds default demo accounts (`admin@playablefactory.com` and `user@playablefactory.com`) and corpus files on first boot!
+
+---
+
+## 12. License
 
 Proprietary case study implementation for Playable Factory evaluation.
+

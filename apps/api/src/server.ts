@@ -13,6 +13,8 @@ import ingestionRoutes from './routes/ingestion.routes.js';
 import analyticsRoutes from './routes/analytics.routes.js';
 import { evaluationRouter } from './routes/evaluation.routes.js';
 import { watcherService } from './services/watcher.service.js';
+import { runMigrations } from './db/migrate.js';
+import { seedDatabase } from './db/seed.js';
 
 export const app: Express = express();
 
@@ -127,6 +129,13 @@ if (process.env.NODE_ENV !== 'test') {
     console.log(`🤖 LLM: Google ${env.GEMINI_MODEL}`);
     console.log(`🧠 Embedding: Google ${env.EMBEDDING_MODEL} (768-dim)`);
     console.log(`====================================================`);
+
+    // Auto-migrate & Auto-seed for zero-config production deployment
+    runMigrations()
+      .then(async () => {
+        await seedDatabase().catch((err) => console.warn('[DB] Auto-seed note:', (err as Error).message));
+      })
+      .catch((err) => console.warn('[DB] Auto-migration note:', (err as Error).message));
 
     // Start self-updating corpus watcher (Bonus Feature)
     watcherService.startWatching();

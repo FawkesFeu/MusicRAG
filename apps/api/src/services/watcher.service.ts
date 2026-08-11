@@ -7,7 +7,18 @@ import { ingestionService } from '../services/ingestion.service.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const CORPUS_DIR = path.resolve(__dirname, '../../../../sample_dataset/corpus');
+
+function getCorpusDir(): string {
+  const candidates = [
+    path.resolve(process.cwd(), 'sample_dataset/corpus'),
+    path.resolve(process.cwd(), '../../sample_dataset/corpus'),
+    path.resolve(__dirname, '../../../../sample_dataset/corpus'),
+    path.resolve(__dirname, '../../../sample_dataset/corpus'),
+  ];
+  return candidates.find((c) => fs.existsSync(c)) || candidates[0];
+}
+
+const CORPUS_DIR = getCorpusDir();
 
 export const watcherService = {
   watcher: null as fs.FSWatcher | null,

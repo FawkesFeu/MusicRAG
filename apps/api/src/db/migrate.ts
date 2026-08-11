@@ -113,6 +113,17 @@ export async function runMigrations() {
         relevance_feedback TEXT,
         created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
       );
+
+      CREATE TABLE IF NOT EXISTS invitations (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        email TEXT NOT NULL,
+        token TEXT NOT NULL UNIQUE,
+        role TEXT NOT NULL DEFAULT 'user',
+        expires_at TIMESTAMP WITH TIME ZONE NOT NULL,
+        used BOOLEAN NOT NULL DEFAULT false,
+        created_by UUID REFERENCES users(id) ON DELETE SET NULL,
+        created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
+      );
     `);
 
     // 3. Create Indexes
@@ -128,6 +139,8 @@ export async function runMigrations() {
       CREATE INDEX IF NOT EXISTS ingestion_jobs_status_idx ON ingestion_jobs(status);
       CREATE INDEX IF NOT EXISTS search_queries_user_id_idx ON search_queries(user_id);
       CREATE INDEX IF NOT EXISTS search_queries_created_at_idx ON search_queries(created_at);
+      CREATE INDEX IF NOT EXISTS invitations_token_idx ON invitations(token);
+      CREATE INDEX IF NOT EXISTS invitations_email_idx ON invitations(email);
     `);
 
     // Create HNSW vector index

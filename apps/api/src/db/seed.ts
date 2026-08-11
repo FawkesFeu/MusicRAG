@@ -130,8 +130,10 @@ export async function seedDatabase() {
     console.log(`🎉 Database Seeding Complete! ${indexedCount} newly indexed, ${skippedCount} already indexed (Total: ${allFilePaths.length}).`);
     console.log('====================================================\n');
   } catch (error) {
-    console.error('[DB] Seeding error:', error);
-    process.exit(1);
+    console.error('[DB] Seeding note/error:', (error as Error).message);
+    if (process.argv[1]?.endsWith('seed.ts') || process.argv[1]?.endsWith('seed.js')) {
+      process.exit(1);
+    }
   }
 }
 

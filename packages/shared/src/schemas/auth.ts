@@ -71,3 +71,21 @@ export const refreshTokenSchema = z.object({
 });
 
 export type RefreshTokenInput = z.infer<typeof refreshTokenSchema>;
+
+// Admin Invitation Creation Schema
+export const createInvitationSchema = z.object({
+  email: emailSchema,
+  role: z.enum(['user', 'admin']).default('user'),
+  expiresInHours: z.number().int().min(1).max(720).default(48),
+});
+
+export type CreateInvitationInput = z.infer<typeof createInvitationSchema>;
+
+// Accept Invitation Schema
+export const acceptInvitationSchema = z.object({
+  token: z.string().min(1, 'Invitation token is required'),
+  name: z.string().trim().min(2, 'Name must be at least 2 characters').max(100),
+  password: strongPasswordSchema,
+});
+
+export type AcceptInvitationInput = z.infer<typeof acceptInvitationSchema>;

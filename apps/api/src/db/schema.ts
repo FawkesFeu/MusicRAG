@@ -162,3 +162,23 @@ export const ingestionJobsRelations = relations(ingestionJobs, ({ one }) => ({
 export const searchQueriesRelations = relations(searchQueries, ({ one }) => ({
   user: one(users, { fields: [searchQueries.userId], references: [users.id] }),
 }));
+
+// ============= INVITATIONS TABLE =============
+export const invitations = pgTable('invitations', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  email: text('email').notNull(),
+  role: text('role').notNull().default('user'), // 'user' | 'admin'
+  token: text('token').notNull().unique(),
+  expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+  used: boolean('used').notNull().default(false),
+  createdBy: uuid('created_by').references(() => users.id, { onDelete: 'set null' }),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+}, (table) => ({
+  tokenIdx: index('invitations_token_idx').on(table.token),
+  emailIdx: index('invitations_email_idx').on(table.email),
+}));
+
+export const invitationsRelations = relations(invitations, ({ one }) => ({
+  creator: one(users, { fields: [invitations.createdBy], references: [users.id] }),
+}));
+

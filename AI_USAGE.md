@@ -71,6 +71,13 @@ During the automated build, integration, and testing cycles, several real-world 
 - **Problem**: While `watcher.service.ts` successfully detected newly added or modified documents and incrementally re-indexed them, deleting a file from `sample_dataset/corpus` previously only logged to console without purging the corresponding document records, chunks, and vector embeddings from PostgreSQL (pgvector) and the local store.
 - **Resolution**: Implemented `documentRepository.deleteByFilename(filename)` with automated CASCADE deletion across `document_chunks` and `embeddings` tables. When `watcher.service.ts` detects a file deletion event (`!fs.existsSync(fullPath)`), it immediately purges the document and its vector representations from the database, maintaining perfect synchronization between the filesystem corpus and the vector index.
 
+### Issue 10: User Management: Cryptographic Invitation Token & Self-Registration Flow
+- **Problem**: Previously, admin user management only allowed manually assigning static passwords during account creation, without supporting secure one-click invitation links or self-service password establishment as specified in the case study requirements (*"an admin surface to invite, list, and manage users and their roles"*).
+- **Resolution**: Implemented an end-to-end Invitation subsystem:
+  1. **Schema & Database**: Created `invitations` table with cryptographically secure tokens, expiration timestamps, role assignments, and usage flags.
+  2. **Admin API & UI**: Admins can generate shareable invitation links (`/register?inviteToken=...`) with custom roles (`user` / `admin`) and validity periods, copy links with one-click clipboard feedback, and view/revoke pending invitations in real-time.
+  3. **Invitation Acceptance Page**: When invited users access their unique link, their email and role are verified and locked, prompting them to set their password with live security checks and seamlessly logging them into the platform.
+
 ---
 
 ## 3. Human Oversight & Design Verification

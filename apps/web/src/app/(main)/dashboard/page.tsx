@@ -27,6 +27,9 @@ import {
   ArrowUpRight,
   ShieldAlert,
   Sparkles,
+  Mail,
+  Copy,
+  Check,
 } from 'lucide-react';
 import type { Document, AnalyticsStats, UserPublicProfile, UserRole } from '@rag/shared';
 
@@ -39,7 +42,9 @@ export default function DashboardPage() {
   const [stats, setStats] = useState<AnalyticsStats | null>(null);
   const [recentQueries, setRecentQueries] = useState<any[]>([]);
   const [usersList, setUsersList] = useState<UserPublicProfile[]>([]);
+  const [invitationsList, setInvitationsList] = useState<any[]>([]);
   const [evaluationReport, setEvaluationReport] = useState<any | null>(null);
+  const [copiedTokenId, setCopiedTokenId] = useState<string | null>(null);
   const [evaluating, setEvaluating] = useState(false);
   const [loading, setLoading] = useState(true);
   const [isUploadOpen, setIsUploadOpen] = useState(false);
@@ -51,12 +56,13 @@ export default function DashboardPage() {
     try {
       setLoading(true);
       setActionError(null);
-      const [docsData, statsData, queriesData, usersData, evalData] = await Promise.all([
+      const [docsData, statsData, queriesData, usersData, evalData, invData] = await Promise.all([
         apiClient.get('/api/documents'),
         apiClient.get('/api/analytics/stats'),
         apiClient.get('/api/analytics/queries'),
         apiClient.get('/api/auth/admin/users').catch(() => []),
         apiClient.get('/api/evaluation/latest').catch(() => null),
+        apiClient.get('/api/auth/admin/invitations').catch(() => []),
       ]);
 
       setDocuments(docsData || []);
@@ -64,6 +70,7 @@ export default function DashboardPage() {
       setRecentQueries(queriesData || []);
       setUsersList(usersData || []);
       setEvaluationReport(evalData || null);
+      setInvitationsList(invData || []);
     } catch (err) {
       console.error('Failed to fetch dashboard telemetry:', err);
     } finally {
@@ -126,6 +133,27 @@ export default function DashboardPage() {
     } catch (err: any) {
       setActionError(err.message || 'Failed to delete user');
     }
+  };
+
+  const handleRevokeInvitation = async (invId: string) => {
+    if (!confirm('Are you sure you want to revoke this invitation link?')) {
+      return;
+    }
+    try {
+      setActionError(null);
+      await apiClient.delete(`/api/auth/admin/invitations/${invId}`);
+      await loadDashboardData();
+    } catch (err: any) {
+      setActionError(err.message || 'Failed to revoke invitation');
+    }
+  };
+
+  const handleCopyInviteUrl = (token: string, invId: string) => {
+    const origin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000';
+    const link = `${origin}/register?inviteToken=${token}`;
+    navigator.clipboard.writeText(link);
+    setCopiedTokenId(invId);
+    setTimeout(() => setCopiedTokenId(null), 2500);
   };
 
   const handleRunBenchmark = async () => {
@@ -509,6 +537,126 @@ export default function DashboardPage() {
                   })}
                 </tbody>
               </table>
+            </div>
+          </div>
+
+          {/* Active & Pending Team Invitations Section */}
+          <div className="space-y-4 pt-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-base font-bold text-white flex items-center gap-2">
+                  <Mail className="h-4 w-4 text-brand-400" />
+                  <span>Pending Team Invitations ({invitationsList.filter((i) => !i.used).length})</span>
+                </h3>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  Shareable invite links with assigned roles and automatic expiration.
+                </p>
+              </div>
+            </div>
+
+            <div className="overflow-hidden rounded-2xl border border-dark-border bg-dark-card shadow-lg">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs text-slate-300">
+                  <thead className="border-b border-dark-border bg-slate-900/60 font-semibold uppercase tracking-wider text-slate-400">
+                    <tr>
+                      <th className="px-6 py-3.5">Invited Email</th>
+                      <th className="px-6 py-3.5">Assigned Role</th>
+                      <th className="px-6 py-3.5">Expiration / Status</th>
+                      <th className="px-6 py-3.5 text-right">Invitation Link & Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-dark-border">
+                    {invitationsList.length === 0 ? (
+                      <tr>
+                        <td colSpan={4} className="px-6 py-6 text-center text-slate-500 italic">
+                          No pending invitations. Click &quot;Add Team Member&quot; to generate an invite link.
+                        </td>
+                      </tr>
+                    ) : (
+                      invitationsList.map((inv) => {
+                        const isExpired = new Date(inv.expiresAt) < new Date();
+                        const isCopied = copiedTokenId === inv.id;
+                        return (
+                          <tr key={inv.id} className="hover:bg-slate-850/50 transition">
+                            <td className="px-6 py-4 font-medium text-white">
+                              <div className="flex items-center gap-2">
+                                <Mail className="h-3.5 w-3.5 text-slate-400" />
+                                <span>{inv.email}</span>
+                              </div>
+                            </td>
+
+                            <td className="px-6 py-4">
+                              {inv.role === 'admin' ? (
+                                <span className="inline-flex items-center gap-1.5 rounded-full bg-purple-500/10 px-2.5 py-0.5 text-[11px] font-semibold text-purple-300 border border-purple-500/30">
+                                  <ShieldCheck className="h-3 w-3" />
+                                  ADMIN
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-800 px-2.5 py-0.5 text-[11px] font-medium text-slate-300 border border-slate-700">
+                                  <Shield className="h-3 w-3" />
+                                  USER
+                                </span>
+                              )}
+                            </td>
+
+                            <td className="px-6 py-4">
+                              {inv.used ? (
+                                <span className="inline-flex items-center gap-1 text-emerald-400 font-semibold text-[11px]">
+                                  <CheckCircle2 className="h-3.5 w-3.5" />
+                                  <span>Accepted</span>
+                                </span>
+                              ) : isExpired ? (
+                                <span className="inline-flex items-center gap-1 text-red-400 font-semibold text-[11px]">
+                                  <AlertCircle className="h-3.5 w-3.5" />
+                                  <span>Expired</span>
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center gap-1 text-amber-400 font-medium text-[11px]">
+                                  <Clock className="h-3.5 w-3.5" />
+                                  <span>Active (Expires {new Date(inv.expiresAt).toLocaleDateString()})</span>
+                                </span>
+                              )}
+                            </td>
+
+                            <td className="px-6 py-4 text-right space-x-2">
+                              {!inv.used && !isExpired && (
+                                <button
+                                  onClick={() => handleCopyInviteUrl(inv.token, inv.id)}
+                                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition ${
+                                    isCopied
+                                      ? 'bg-emerald-600 text-white'
+                                      : 'bg-brand-600/20 text-brand-300 border border-brand-500/30 hover:bg-brand-600/30'
+                                  }`}
+                                >
+                                  {isCopied ? (
+                                    <>
+                                      <Check className="h-3 w-3" />
+                                      <span>Copied!</span>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Copy className="h-3 w-3" />
+                                      <span>Copy Link</span>
+                                    </>
+                                  )}
+                                </button>
+                              )}
+
+                              <button
+                                onClick={() => handleRevokeInvitation(inv.id)}
+                                title="Revoke invitation link"
+                                className="inline-flex items-center p-1.5 rounded-xl bg-slate-800 text-slate-400 hover:text-red-400 hover:bg-slate-700 transition"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
         </div>

@@ -137,4 +137,70 @@ router.delete('/admin/users/:id', authMiddleware, requireRole('admin'), async (r
   }
 });
 
+// ================= INVITATION FLOW ENDPOINTS =================
+
+// POST /api/auth/admin/invitations (Admin only: Generate invitation link/token)
+router.post('/admin/invitations', authMiddleware, requireRole('admin'), async (req: AuthenticatedRequest, res: Response, next) => {
+  try {
+    const { email, role, expiresInHours } = req.body;
+    if (!email) {
+      return res.status(400).json({ success: false, error: 'Email is required' });
+    }
+    const invitation = await authService.createInvitation(
+      req.user!.userId,
+      email,
+      role || 'user',
+      expiresInHours || 48,
+      req.ip
+    );
+    res.status(201).json({ success: true, data: invitation });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// GET /api/auth/admin/invitations (Admin only: List all invitations)
+router.get('/admin/invitations', authMiddleware, requireRole('admin'), async (_req: AuthenticatedRequest, res: Response, next) => {
+  try {
+    const list = await authService.listInvitations();
+    res.json({ success: true, data: list });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// DELETE /api/auth/admin/invitations/:id (Admin only: Revoke invitation)
+router.delete('/admin/invitations/:id', authMiddleware, requireRole('admin'), async (req: AuthenticatedRequest, res: Response, next) => {
+  try {
+    await authService.deleteInvitation(req.params.id);
+    res.json({ success: true, message: 'Invitation revoked successfully' });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// GET /api/auth/invitation/:token (Public: Validate invitation token)
+router.get('/invitation/:token', async (req, res, next) => {
+  try {
+    const data = await authService.validateInvitation(req.params.token);
+    res.json({ success: true, data });
+  } catch (err: any) {
+    res.status(400).json({ success: false, error: err.message });
+  }
+});
+
+// POST /api/auth/accept-invite (Public: Accept invitation and register)
+router.post('/accept-invite', authRateLimiter, async (req, res, next) => {
+  try {
+    const { token, name, password } = req.body;
+    if (!token || !name || !password) {
+      return res.status(400).json({ success: false, error: 'Token, name, and password are required' });
+    }
+    const result = await authService.acceptInvitation(token, name, password, req.ip);
+    res.status(201).json({ success: true, data: result });
+  } catch (err) {
+    next(err);
+  }
+});
+
 export default router;

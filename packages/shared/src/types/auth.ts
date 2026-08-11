@@ -38,3 +38,14 @@ export interface Session {
   expiresAt: string;
   createdAt: string;
 }
+
+export interface UserInvitation {
+  id: string;
+  email: string;
+  role: UserRole;
+  token: string;
+  expiresAt: string;
+  used: boolean;
+  createdBy?: string | null;
+  createdAt: string;
+}

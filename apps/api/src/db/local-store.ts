@@ -11,6 +11,7 @@ const STORE_PATH = path.resolve(DATA_DIR, 'store.json');
 export interface LocalStoreData {
   users: any[];
   sessions: any[];
+  invitations: any[];
   documents: any[];
   documentChunks: any[];
   embeddings: any[];
@@ -22,6 +23,7 @@ function getDefaultData(): LocalStoreData {
   return {
     users: [],
     sessions: [],
+    invitations: [],
     documents: [],
     documentChunks: [],
     embeddings: [],
@@ -141,6 +143,50 @@ export class LocalStore {
 
   deleteSession(refreshToken: string) {
     this.data.sessions = this.data.sessions.filter(s => s.refreshToken !== refreshToken);
+    this.save();
+  }
+
+  // Invitations
+  createInvitation(inv: { email: string; role: UserRole; token: string; expiresAt: Date; createdBy?: string | null }) {
+    if (!this.data.invitations) this.data.invitations = [];
+    const newInv = {
+      id: crypto.randomUUID(),
+      email: inv.email,
+      role: inv.role,
+      token: inv.token,
+      expiresAt: inv.expiresAt.toISOString(),
+      used: false,
+      createdBy: inv.createdBy || null,
+      createdAt: new Date().toISOString(),
+    };
+    this.data.invitations.push(newInv);
+    this.save();
+    return newInv;
+  }
+
+  findInvitationByToken(token: string) {
+    if (!this.data.invitations) this.data.invitations = [];
+    return this.data.invitations.find(i => i.token === token) || null;
+  }
+
+  listInvitations() {
+    if (!this.data.invitations) this.data.invitations = [];
+    return [...this.data.invitations].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  }
+
+  markInvitationUsed(token: string) {
+    if (!this.data.invitations) this.data.invitations = [];
+    const inv = this.data.invitations.find(i => i.token === token);
+    if (inv) {
+      inv.used = true;
+      this.save();
+    }
+    return inv || null;
+  }
+
+  deleteInvitation(id: string) {
+    if (!this.data.invitations) this.data.invitations = [];
+    this.data.invitations = this.data.invitations.filter(i => i.id !== id);
     this.save();
   }
 

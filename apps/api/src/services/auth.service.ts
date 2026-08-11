@@ -1,7 +1,9 @@
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
+import crypto from 'crypto';
 import { env } from '../config/env.js';
 import { userRepository } from '../repositories/user.repository.js';
+import { invitationRepository } from '../repositories/invitation.repository.js';
 import type { JWTPayload, UserPublicProfile, AuthTokens, UserRole } from '@rag/shared';
 
 const SALT_ROUNDS = 12; // High-security bcrypt cost factor
@@ -237,5 +239,120 @@ export const authService = {
 
   async logout(refreshToken: string): Promise<void> {
     await userRepository.deleteSession(refreshToken);
+  },
+
+  // ============= USER INVITATIONS (Invite Flow) =============
+  async createInvitation(
+    adminUserId: string,
+    email: string,
+    role: UserRole = 'user',
+    expiresInHours: number = 48,
+    ip?: string
+  ) {
+    const existing = await userRepository.findByEmail(email);
+    if (existing) {
+      throw new Error(`An account with email "${email}" already exists.`);
+    }
+
+    const token = crypto.randomUUID().replace(/-/g, '') + crypto.randomUUID().replace(/-/g, '');
+    const expiresAt = new Date(Date.now() + expiresInHours * 60 * 60 * 1000);
+
+    const invitation = await invitationRepository.create({
+      email,
+      role,
+      token,
+      expiresAt,
+      createdBy: adminUserId,
+    });
+
+    auditLog('ADMIN_INVITATION_CREATED', {
+      email,
+      userId: adminUserId,
+      role,
+      ip,
+      details: `Invite token generated valid for ${expiresInHours}h`,
+    });
+
+    return invitation;
+  },
+
+  async listInvitations() {
+    return invitationRepository.listAll();
+  },
+
+  async deleteInvitation(id: string) {
+    await invitationRepository.delete(id);
+  },
+
+  async validateInvitation(token: string) {
+    const inv = await invitationRepository.findByToken(token);
+    if (!inv) {
+      throw new Error('Invitation link is invalid or has expired.');
+    }
+
+    if (inv.used) {
+      throw new Error('This invitation has already been accepted.');
+    }
+
+    if (new Date(inv.expiresAt) < new Date()) {
+      throw new Error('This invitation link has expired.');
+    }
+
+    return {
+      valid: true,
+      email: inv.email,
+      role: inv.role as UserRole,
+      expiresAt: inv.expiresAt,
+    };
+  },
+
+  async acceptInvitation(token: string, name: string, password: string, ip?: string): Promise<AuthTokens> {
+    const inv = await invitationRepository.findByToken(token);
+    if (!inv || inv.used || new Date(inv.expiresAt) < new Date()) {
+      throw new Error('Invalid, used, or expired invitation token.');
+    }
+
+    const existing = await userRepository.findByEmail(inv.email);
+    if (existing) {
+      throw new Error('A user with this email already exists.');
+    }
+
+    const hashedPassword = await this.hashPassword(password);
+    const user = await userRepository.create({
+      name,
+      email: inv.email,
+      hashedPassword,
+      role: inv.role as UserRole,
+    });
+
+    await invitationRepository.markUsed(token);
+
+    auditLog('INVITATION_ACCEPTED', {
+      email: user.email,
+      userId: user.id,
+      role: user.role,
+      ip,
+      details: `User registered via invitation token`,
+    });
+
+    const accessToken = this.generateAccessToken({
+      userId: user.id,
+      email: user.email,
+      role: user.role as UserRole,
+    });
+
+    const { token: refreshToken, expiresAt } = this.generateRefreshToken(user.id);
+    await userRepository.createSession(user.id, refreshToken, expiresAt);
+
+    return {
+      accessToken,
+      refreshToken,
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        role: user.role as UserRole,
+      },
+    };
   },
 };

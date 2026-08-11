@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Sparkles,
   Play,
@@ -15,10 +15,16 @@ import {
   Activity,
   Layers,
   Search,
-  ExternalLink,
   ChevronDown,
   ChevronUp,
+  Terminal,
+  Radio,
+  FileCode2,
+  Check,
+  AlertCircle,
+  HelpCircle,
 } from 'lucide-react';
+import { apiClient, getAuthToken } from '../lib/api-client';
 
 interface EvaluationItemResult {
   id: string;
@@ -47,6 +53,19 @@ interface BenchmarkReport {
   results: EvaluationItemResult[];
 }
 
+interface LiveLogItem {
+  id: string;
+  index: number;
+  total: number;
+  query: string;
+  category: string;
+  status: 'evaluating' | 'passed' | 'miss' | 'abstained' | 'failed';
+  hitRank?: number | null;
+  latencyMs?: number;
+  answerSnippet?: string;
+  retrievedDocs?: string[];
+}
+
 interface EvaluationSuiteProps {
   report: BenchmarkReport | null;
   evaluating: boolean;
@@ -55,14 +74,128 @@ interface EvaluationSuiteProps {
 }
 
 export function EvaluationSuite({
-  report,
-  evaluating,
-  onRunBenchmark,
+  report: initialReport,
+  evaluating: externalEvaluating,
   onDownloadReport,
 }: EvaluationSuiteProps) {
+  const [report, setReport] = useState<BenchmarkReport | null>(initialReport);
+  const [isEvaluating, setIsEvaluating] = useState(false);
+  const [currentScenario, setCurrentScenario] = useState<{
+    index: number;
+    total: number;
+    query: string;
+    category: string;
+  } | null>(null);
+  const [liveLogs, setLiveLogs] = useState<LiveLogItem[]>([]);
+  const [showConsole, setShowConsole] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
   const [searchFilter, setSearchFilter] = useState('');
+  const logContainerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (initialReport) {
+      setReport(initialReport);
+    }
+  }, [initialReport]);
+
+  // Auto-scroll live logs
+  useEffect(() => {
+    if (logContainerRef.current) {
+      logContainerRef.current.scrollTop = logContainerRef.current.scrollHeight;
+    }
+  }, [liveLogs, currentScenario]);
+
+  const runLiveStreamingBenchmark = async () => {
+    try {
+      setIsEvaluating(true);
+      setShowConsole(true);
+      setLiveLogs([]);
+      setCurrentScenario(null);
+
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+      const token = getAuthToken();
+
+      const response = await fetch(`${API_URL}/api/evaluation/stream`, {
+        headers: {
+          Authorization: token ? `Bearer ${token}` : '',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Server returned ${response.status}: ${response.statusText}`);
+      }
+
+      const reader = response.body?.getReader();
+      if (!reader) throw new Error('ReadableStream not supported');
+
+      const decoder = new TextDecoder();
+      let buffer = '';
+
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+
+        for (const line of lines) {
+          const trimmed = line.trim();
+          if (trimmed.startsWith('data: ')) {
+            try {
+              const event = JSON.parse(trimmed.slice(6));
+
+              if (event.type === 'scenario_start') {
+                setCurrentScenario({
+                  index: event.currentIndex,
+                  total: event.total,
+                  query: event.scenario.query,
+                  category: event.scenario.category,
+                });
+              } else if (event.type === 'scenario_complete') {
+                const s = event.scenario;
+                setLiveLogs((prev) => [
+                  ...prev,
+                  {
+                    id: s.id,
+                    index: event.currentIndex,
+                    total: event.total,
+                    query: s.query,
+                    category: s.category,
+                    status: s.status,
+                    hitRank: s.hitRank,
+                    latencyMs: s.latencyMs,
+                    answerSnippet: s.answerSnippet,
+                    retrievedDocs: s.retrievedDocs,
+                  },
+                ]);
+              } else if (event.type === 'benchmark_complete') {
+                if (event.report) {
+                  setReport(event.report);
+                }
+                setCurrentScenario(null);
+              }
+            } catch (err) {
+              console.error('Error parsing SSE event chunk:', err);
+            }
+          }
+        }
+      }
+    } catch (err: any) {
+      console.error('Streaming benchmark failed:', err);
+      // Fallback to standard HTTP run
+      try {
+        const res = await apiClient.post('/api/evaluation/run');
+        setReport(res);
+      } catch (fallbackErr) {
+        console.error('Fallback benchmark also failed:', fallbackErr);
+      }
+    } finally {
+      setIsEvaluating(false);
+      setCurrentScenario(null);
+    }
+  };
 
   const categories = report
     ? ['all', ...Array.from(new Set(report.results.map((r) => r.category)))]
@@ -78,6 +211,13 @@ export function EvaluationSuite({
         return matchesCat && matchesQuery;
       })
     : [];
+
+  const completedCount = liveLogs.length;
+  const progressPercent = currentScenario
+    ? Math.round((completedCount / currentScenario.total) * 100)
+    : isEvaluating
+    ? 100
+    : 0;
 
   return (
     <div className="space-y-6">
@@ -101,7 +241,7 @@ export function EvaluationSuite({
         <div className="flex items-center gap-3 shrink-0">
           <button
             onClick={onDownloadReport}
-            disabled={!report}
+            disabled={!report || isEvaluating}
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-semibold transition disabled:opacity-40 disabled:cursor-not-allowed"
           >
             <Download className="h-4 w-4 text-slate-400" />
@@ -109,14 +249,14 @@ export function EvaluationSuite({
           </button>
 
           <button
-            onClick={onRunBenchmark}
-            disabled={evaluating}
+            onClick={runLiveStreamingBenchmark}
+            disabled={isEvaluating}
             className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-semibold text-xs shadow-glow-brand transition disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {evaluating ? (
+            {isEvaluating ? (
               <>
                 <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                <span>Evaluating (Pacing 1.5s)...</span>
+                <span>Running ({completedCount}/20)...</span>
               </>
             ) : (
               <>
@@ -127,6 +267,147 @@ export function EvaluationSuite({
           </button>
         </div>
       </div>
+
+      {/* ================= LIVE BENCHMARK EXECUTION CONSOLE ================= */}
+      {(isEvaluating || showConsole) && (
+        <div className="rounded-2xl glass-panel border border-brand-500/30 bg-dark-bg/95 overflow-hidden shadow-2xl transition-all">
+          {/* Console Header */}
+          <div className="p-4 bg-dark-card/90 border-b border-dark-border flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-800 border border-slate-700 font-mono text-[11px] text-slate-300">
+                <Terminal className="h-3.5 w-3.5 text-brand-400" />
+                <span>Live Evaluation Stream</span>
+              </div>
+
+              {isEvaluating ? (
+                <div className="flex items-center gap-2 text-xs text-amber-300">
+                  <span className="relative flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
+                  </span>
+                  <span>Executing live pipeline test...</span>
+                </div>
+              ) : (
+                <span className="flex items-center gap-1.5 text-xs text-emerald-400 font-medium">
+                  <CheckCircle2 className="h-3.5 w-3.5" />
+                  <span>Evaluation Completed</span>
+                </span>
+              )}
+            </div>
+
+            <div className="flex items-center gap-3">
+              <span className="text-xs font-mono text-slate-400">
+                Progress: <strong className="text-white">{completedCount}</strong> / 20 ({progressPercent}%)
+              </span>
+              <button
+                onClick={() => setShowConsole(!showConsole)}
+                className="text-slate-400 hover:text-white p-1 rounded-lg transition"
+              >
+                {showConsole ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+              </button>
+            </div>
+          </div>
+
+          {/* Progress Bar */}
+          <div className="w-full bg-slate-800 h-1.5">
+            <div
+              className="bg-brand-500 h-1.5 transition-all duration-300"
+              style={{ width: `${progressPercent}%` }}
+            />
+          </div>
+
+          {/* Active Question Spotlight */}
+          {currentScenario && isEvaluating && (
+            <div className="px-5 py-3 bg-brand-500/10 border-b border-brand-500/20 flex items-center justify-between gap-4 text-xs">
+              <div className="flex items-center gap-2.5 overflow-hidden">
+                <div className="h-3.5 w-3.5 rounded-full border-2 border-brand-400 border-t-transparent animate-spin shrink-0" />
+                <span className="text-brand-300 font-mono shrink-0">
+                  [{currentScenario.index}/{currentScenario.total}]
+                </span>
+                <span className="text-slate-200 font-medium truncate">
+                  &ldquo;{currentScenario.query}&rdquo;
+                </span>
+              </div>
+              <span className="px-2 py-0.5 rounded bg-brand-500/20 text-brand-300 text-[10px] uppercase font-bold shrink-0">
+                {currentScenario.category}
+              </span>
+            </div>
+          )}
+
+          {/* Live Stream Activity Feed */}
+          {showConsole && (
+            <div
+              ref={logContainerRef}
+              className="p-4 max-h-72 overflow-y-auto space-y-2 font-sans text-xs scrollbar-thin scrollbar-thumb-slate-700"
+            >
+              {liveLogs.length === 0 && isEvaluating && (
+                <div className="text-slate-500 italic py-4 text-center">
+                  Initializing RAG retrieval and embedding pipeline...
+                </div>
+              )}
+
+              {liveLogs.map((log) => {
+                const isPass = log.status === 'passed' || log.status === 'abstained';
+                return (
+                  <div
+                    key={log.id}
+                    className={`p-3 rounded-xl border transition-all flex flex-col gap-1.5 ${
+                      isPass
+                        ? 'bg-dark-card/60 border-slate-800 hover:border-slate-700'
+                        : 'bg-red-500/10 border-red-500/20'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2 overflow-hidden">
+                        <span className="font-mono text-slate-500 text-[11px] shrink-0">
+                          [{log.index}/{log.total}]
+                        </span>
+
+                        {log.status === 'passed' && (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 text-[11px] font-bold shrink-0">
+                            <Check className="h-3 w-3" />
+                            <span>PASS {log.hitRank ? `(Rank #${log.hitRank})` : ''}</span>
+                          </span>
+                        )}
+
+                        {log.status === 'abstained' && (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-blue-500/15 text-blue-300 border border-blue-500/30 text-[11px] font-bold shrink-0">
+                            <ShieldCheck className="h-3 w-3" />
+                            <span>ABSTAINED (Zero Hallucination)</span>
+                          </span>
+                        )}
+
+                        {log.status === 'miss' && (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-red-500/15 text-red-300 border border-red-500/30 text-[11px] font-bold shrink-0">
+                            <XCircle className="h-3 w-3" />
+                            <span>MISS</span>
+                          </span>
+                        )}
+
+                        <span className="text-white font-medium truncate">{log.query}</span>
+                      </div>
+
+                      <div className="flex items-center gap-2 shrink-0 text-[11px] font-mono text-slate-400">
+                        <span className="px-2 py-0.5 rounded bg-slate-800 text-slate-400 text-[10px]">
+                          {log.category}
+                        </span>
+                        <span>{log.latencyMs}ms</span>
+                      </div>
+                    </div>
+
+                    {/* Clean Human-Readable Returned Answer Snippet */}
+                    {log.answerSnippet && (
+                      <div className="pl-6 text-[11px] text-slate-400 line-clamp-1 italic">
+                        &ldquo;{log.answerSnippet}...&rdquo;
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Metrics Grid */}
       {report && (

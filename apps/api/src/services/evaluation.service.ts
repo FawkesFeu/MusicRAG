@@ -49,6 +49,25 @@ export interface BenchmarkReport {
   results: EvaluationItemResult[];
 }
 
+export interface BenchmarkProgressEvent {
+  type: 'scenario_start' | 'scenario_complete' | 'benchmark_complete' | 'error';
+  currentIndex?: number;
+  total?: number;
+  scenario?: {
+    id: string;
+    category: string;
+    query: string;
+    status: 'evaluating' | 'passed' | 'miss' | 'abstained' | 'failed';
+    recallAt5?: boolean;
+    hitRank?: number | null;
+    retrievedDocs?: string[];
+    answerSnippet?: string;
+    latencyMs?: number;
+  };
+  report?: BenchmarkReport;
+  error?: string;
+}
+
 export const evaluationService = {
   getReportFilePath(): string {
     return path.resolve(__dirname, '../evaluation/benchmark_report.json');
@@ -75,9 +94,10 @@ export const evaluationService = {
   },
 
   /**
-   * Runs the complete evaluation suite across all benchmark scenarios.
+   * Runs the complete evaluation suite across all benchmark scenarios,
+   * emitting progress events for live UX streaming.
    */
-  async runBenchmark(): Promise<BenchmarkReport> {
+  async runBenchmarkStream(onProgress?: (event: BenchmarkProgressEvent) => void): Promise<BenchmarkReport> {
     const queriesPath = this.getQueriesFilePath();
     if (!fs.existsSync(queriesPath)) {
       throw new Error(`Benchmark queries file not found at: ${queriesPath}`);
@@ -90,6 +110,22 @@ export const evaluationService = {
 
     for (let i = 0; i < items.length; i++) {
       const item = items[i];
+
+      // Emit scenario start event
+      if (onProgress) {
+        onProgress({
+          type: 'scenario_start',
+          currentIndex: i + 1,
+          total: items.length,
+          scenario: {
+            id: item.id,
+            category: item.category,
+            query: item.query,
+            status: 'evaluating',
+          },
+        });
+      }
+
       const startTime = Date.now();
 
       try {
@@ -124,7 +160,9 @@ export const evaluationService = {
           abstentionPassed = !ragResponse.isCorpusGrounded || ragResponse.citations.length === 0;
         }
 
-        results.push({
+        const answerSnippet = ragResponse.answer.slice(0, 140).replace(/\n/g, ' ');
+
+        const evalResult: EvaluationItemResult = {
           id: item.id,
           category: item.category,
           query: item.query,
@@ -135,11 +173,35 @@ export const evaluationService = {
           isNegativeControl: item.isNegativeControl,
           abstentionPassed,
           latencyMs,
-          answerSnippet: ragResponse.answer.slice(0, 120).replace(/\n/g, ' '),
-        });
+          answerSnippet,
+        };
+
+        results.push(evalResult);
+
+        // Emit scenario complete event
+        if (onProgress) {
+          onProgress({
+            type: 'scenario_complete',
+            currentIndex: i + 1,
+            total: items.length,
+            scenario: {
+              id: item.id,
+              category: item.category,
+              query: item.query,
+              status: item.isNegativeControl
+                ? (abstentionPassed ? 'abstained' : 'failed')
+                : (recallAt5 ? 'passed' : 'miss'),
+              recallAt5,
+              hitRank,
+              retrievedDocs: retrievedFilenames,
+              answerSnippet,
+              latencyMs,
+            },
+          });
+        }
       } catch (err: any) {
         console.error(`[EvaluationService] Error on query "${item.id}":`, err.message);
-        results.push({
+        const failResult: EvaluationItemResult = {
           id: item.id,
           category: item.category,
           query: item.query,
@@ -151,12 +213,32 @@ export const evaluationService = {
           abstentionPassed: false,
           latencyMs: Date.now() - startTime,
           answerSnippet: `Error: ${err.message}`,
-        });
+        };
+        results.push(failResult);
+
+        if (onProgress) {
+          onProgress({
+            type: 'scenario_complete',
+            currentIndex: i + 1,
+            total: items.length,
+            scenario: {
+              id: item.id,
+              category: item.category,
+              query: item.query,
+              status: 'failed',
+              recallAt5: false,
+              hitRank: null,
+              retrievedDocs: [],
+              answerSnippet: `Error: ${err.message}`,
+              latencyMs: Date.now() - startTime,
+            },
+          });
+        }
       }
 
-      // 1.5s pacing to prevent rate limits
+      // 1.2s pacing between questions to safeguard API quotas
       if (i < items.length - 1) {
-        await new Promise((resolve) => setTimeout(resolve, 1500));
+        await new Promise((resolve) => setTimeout(resolve, 1200));
       }
     }
 
@@ -206,6 +288,17 @@ export const evaluationService = {
       console.error('[EvaluationService] Failed to persist report file:', saveErr);
     }
 
+    if (onProgress) {
+      onProgress({
+        type: 'benchmark_complete',
+        report,
+      });
+    }
+
     return report;
+  },
+
+  async runBenchmark(): Promise<BenchmarkReport> {
+    return this.runBenchmarkStream();
   },
 };

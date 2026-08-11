@@ -1,12 +1,18 @@
 {
-  "timestamp": "2026-08-11T12:58:05.866Z",
+  "timestamp": "2026-08-11T14:11:04.889Z",
   "metrics": {
     "totalQueries": 20,
     "meanRecallAt5": "100.0%",
     "meanReciprocalRank": "0.882",
     "hitAt1Rate": "76.5%",
     "negativeAbstentionRate": "100.0%",
-    "averageLatencyMs": 5425
+    "averageLatencyMs": 5577,
+    "rawMetrics": {
+      "recallAt5Percentage": 100,
+      "hitAt1Percentage": 76.5,
+      "mrrScore": 0.882,
+      "abstentionPercentage": 100
+    }
   },
   "results": [
     {
@@ -22,26 +28,26 @@
       "reciprocalRank": 1,
       "isNegativeControl": false,
       "abstentionPassed": true,
-      "latencyMs": 5821,
-      "answerSnippet": "Yeni bir geliştirici ilk hafta şu aktiviteleri yapar [Source 1]: * Çevre kurulumu (environment setup"
+      "latencyMs": 6678,
+      "answerSnippet": "Lumen'da yeni bir geliştirici ilk hafta şu aktiviteleri yapar: - Ortam kurulumu (environment setup) [Source 1] - `lumen-"
     },
     {
       "id": "q2_turkish_local_server",
       "category": "Turkish / Informal",
       "query": "lumen local server olmadan niye patlıyor productionda?",
       "retrievedDocs": [
-        "build-pipeline.md",
-        "qa-checklist.md",
         "network-specs-applovin.md",
+        "build-pipeline.md",
         "network-specs-unity-meta.md",
-        "meeting-notes/2025-09-22-production-sync.md"
+        "qa-checklist.md",
+        "meeting-notes/2025-09-08-production-sync.md"
       ],
       "hitRank": 1,
       "recallAt5": true,
       "reciprocalRank": 1,
       "isNegativeControl": false,
       "abstentionPassed": true,
-      "latencyMs": 5153,
+      "latencyMs": 4933,
       "answerSnippet": "The provided document corpus does not contain information to answer this question."
     },
     {
@@ -60,8 +66,8 @@
       "reciprocalRank": 1,
       "isNegativeControl": false,
       "abstentionPassed": true,
-      "latencyMs": 5785,
-      "answerSnippet": "Based on the provided documents, the maximum file size limit for AppLovin playable ads is 5 MB for t"
+      "latencyMs": 5913,
+      "answerSnippet": "Based on the provided documents:  - **Maximum file size limit:** The maximum file size for the final single HTML file fo"
     },
     {
       "id": "q4_unity_meta_packaging",
@@ -69,9 +75,9 @@
       "query": "What is the packaging difference between Unity and Meta playable ads?",
       "retrievedDocs": [
         "network-specs-unity-meta.md",
-        "network-specs-applovin.md",
         "build-pipeline.md",
         "qa-checklist.md",
+        "network-specs-applovin.md",
         "lumen-release-and-qa-checklist.md"
       ],
       "hitRank": 1,
@@ -79,8 +85,8 @@
       "reciprocalRank": 1,
       "isNegativeControl": false,
       "abstentionPassed": true,
-      "latencyMs": 6009,
-      "answerSnippet": "Based on the provided context:  - **Unity** playables ship as a ZIP archive with an `index.html` ent"
+      "latencyMs": 5983,
+      "answerSnippet": "Based on the provided documents:  * **Unity playables:** Ship as a ZIP archive with an `index.html` entry point [Source "
     },
     {
       "id": "q5_sdk_v3_migration",
@@ -88,18 +94,18 @@
       "query": "How do I initialize Lumen SDK v3 and why was lumen.track removed?",
       "retrievedDocs": [
         "sdk-notes-v3.md",
+        "analytics-events.md",
         "build-pipeline.md",
         "network-specs-applovin.md",
-        "sdk-notes-v2.md",
-        "meeting-notes/2026-01-12-production-sync.md"
+        "sdk-notes-v2.md"
       ],
       "hitRank": 1,
       "recallAt5": true,
       "reciprocalRank": 1,
       "isNegativeControl": false,
       "abstentionPassed": true,
-      "latencyMs": 5653,
-      "answerSnippet": "To initialize Lumen SDK v3, call `LumenSDK.init(config)` before any game code runs; this initializat"
+      "latencyMs": 5874,
+      "answerSnippet": "To initialize Lumen SDK v3, call `LumenSDK.init(config)` before any game code runs; the `init` function returns a promis"
     },
     {
       "id": "q6_audio_build_pipeline",
@@ -117,8 +123,8 @@
       "reciprocalRank": 0.5,
       "isNegativeControl": false,
       "abstentionPassed": true,
-      "latencyMs": 5400,
-      "answerSnippet": "Sound assets are built in a separate pass because compressing audio together with textures produced "
+      "latencyMs": 5390,
+      "answerSnippet": "Based on the provided documentation, sound assets are built in a separate pass (and audio is encoded in a dedicated pass"
     },
     {
       "id": "q7_march_incident_postmortem",
@@ -126,17 +132,17 @@
       "query": "What was the root cause of the March 2026 delivery incident?",
       "retrievedDocs": [
         "incident-postmortem-2026-03.md",
-        "guides/incident-process.md",
-        "delivery-reports/2026-02-tidal-tycoon.md",
-        "delivery-reports/2026-06-sky-ferry.md"
+        "postmortems/2025-07-localization-regression.md",
+        "delivery-reports/2026-03-sky-ferry.md",
+        "delivery-reports/2026-02-tidal-tycoon.md"
       ],
       "hitRank": 1,
       "recallAt5": true,
       "reciprocalRank": 1,
       "isNegativeControl": false,
       "abstentionPassed": true,
-      "latencyMs": 5226,
-      "answerSnippet": "The root cause of the March 2026 delivery incident was a lumen-build update that changed the order o"
+      "latencyMs": 5591,
+      "answerSnippet": "Based on the provided context, the root cause of the March 2026 delivery incident was a `lumen-build` update that change"
     },
     {
       "id": "q8_pre_delivery_qa",
@@ -152,8 +158,8 @@
       "reciprocalRank": 1,
       "isNegativeControl": false,
       "abstentionPassed": true,
-      "latencyMs": 6586,
-      "answerSnippet": "Based on the pre-delivery QA checklist, the following checks must be passed (with a delivery blocked"
+      "latencyMs": 6192,
+      "answerSnippet": "Based on the Pre-Delivery QA Checklist [Source 1], the checks that must be passed are:  1. Size check per target network"
     },
     {
       "id": "q9_localization_languages",
@@ -163,15 +169,16 @@
         "localization-guide.md",
         "network-specs-applovin.md",
         "postmortems/2025-07-localization-regression.md",
-        "qa-checklist.md"
+        "qa-checklist.md",
+        "meeting-notes/2025-07-07-production-sync.md"
       ],
       "hitRank": 1,
       "recallAt5": true,
       "reciprocalRank": 1,
       "isNegativeControl": false,
       "abstentionPassed": true,
-      "latencyMs": 4329,
-      "answerSnippet": "Based on the provided documents:  * **Required Localization Languages:** Every Lumen playable ships "
+      "latencyMs": 5291,
+      "answerSnippet": "Based on the provided documents:  * **Required Localization Languages:** Every Lumen playable ships with a minimum langu"
     },
     {
       "id": "q10_onboarding_week_two",
@@ -179,15 +186,15 @@
       "query": "What does a new developer do during their second week?",
       "retrievedDocs": [
         "onboarding-new-dev.md",
-        "qa-checklist.md"
+        "meeting-notes/2025-04-07-production-sync.md"
       ],
       "hitRank": 1,
       "recallAt5": true,
       "reciprocalRank": 1,
       "isNegativeControl": false,
       "abstentionPassed": true,
-      "latencyMs": 5336,
-      "answerSnippet": "During their second week, a new developer works on their first real ticket, which is limited to an i"
+      "latencyMs": 4988,
+      "answerSnippet": "During their second week, a new developer works on their first real ticket, which is limited to an iteration on an exist"
     },
     {
       "id": "q11_staging_cdn_access",
@@ -196,17 +203,17 @@
       "retrievedDocs": [
         "build-pipeline.md",
         "onboarding-new-dev.md",
-        "lumen-release-and-qa-checklist.md",
         "network-specs-applovin.md",
-        "guides/review-process.md"
+        "network-specs-unity-meta.md",
+        "localization-guide.md"
       ],
       "hitRank": 2,
       "recallAt5": true,
       "reciprocalRank": 0.5,
       "isNegativeControl": false,
       "abstentionPassed": true,
-      "latencyMs": 5027,
-      "answerSnippet": "Based on the provided documentation:  * **Production upload rights** are limited to producers and th"
+      "latencyMs": 5798,
+      "answerSnippet": "Based on the provided documents:  - **Staging CDN access:** The staging CDN is open to all developers [Source 2]. - **Pr"
     },
     {
       "id": "q12_turkish_audio_compression",
@@ -224,8 +231,8 @@
       "reciprocalRank": 0.5,
       "isNegativeControl": false,
       "abstentionPassed": true,
-      "latencyMs": 5334,
-      "answerSnippet": "Sound assets are built separately and audio is encoded in a dedicated pass because compressing audio"
+      "latencyMs": 5565,
+      "answerSnippet": "Based on the provided documents, sound assets are built separately in a dedicated pass because compressing audio togethe"
     },
     {
       "id": "q13_turkish_applovin_boyut",
@@ -234,17 +241,17 @@
       "retrievedDocs": [
         "network-specs-applovin.md",
         "incident-postmortem-2026-03.md",
+        "build-pipeline.md",
         "network-specs-unity-meta.md",
-        "qa-checklist.md",
-        "build-pipeline.md"
+        "qa-checklist.md"
       ],
       "hitRank": 1,
       "recallAt5": true,
       "reciprocalRank": 1,
       "isNegativeControl": false,
       "abstentionPassed": true,
-      "latencyMs": 5576,
-      "answerSnippet": "Based on the provided documents:  * **Boyut (Size limit):** Maximum file size is 5 MB [Source 1]. * "
+      "latencyMs": 5693,
+      "answerSnippet": "Based on the provided context:  - **Boyut (Size limit):** Maximum file size is 5 MB [Source 1]. - **Format (ZIP vs HTML)"
     },
     {
       "id": "q14_analytics_taxonomy",
@@ -253,8 +260,8 @@
       "retrievedDocs": [
         "analytics-events.md",
         "network-specs-unity-meta.md",
-        "build-pipeline.md",
         "network-specs-applovin.md",
+        "build-pipeline.md",
         "qa-checklist.md"
       ],
       "hitRank": 1,
@@ -262,8 +269,8 @@
       "reciprocalRank": 1,
       "isNegativeControl": false,
       "abstentionPassed": true,
-      "latencyMs": 5520,
-      "answerSnippet": "Lumen playables emit the following standard analytics events: - `load_complete` [Source 1] - `first_"
+      "latencyMs": 5393,
+      "answerSnippet": "Based on the provided documents:  The standard analytics event set emitted by Lumen playables consists of [Source 1]: - "
     },
     {
       "id": "q15_ui_style_guide_cta",
@@ -279,8 +286,8 @@
       "reciprocalRank": 1,
       "isNegativeControl": false,
       "abstentionPassed": true,
-      "latencyMs": 5625,
-      "answerSnippet": "Based on the provided UI Style Guide:  * **Buttons:** A playable must have exactly one primary CTA v"
+      "latencyMs": 5979,
+      "answerSnippet": "Based on the UI Style Guide, the rules for buttons, CTA contrast, and progress are:  * **Buttons:** A playable must have"
     },
     {
       "id": "q16_creative_review_process",
@@ -289,16 +296,17 @@
       "retrievedDocs": [
         "qa-checklist.md",
         "guides/review-process.md",
-        "delivery-reports/2025-05-waffle-rush.md",
-        "delivery-reports/2026-02-merge-marina.md"
+        "company-overview.md",
+        "delivery-reports/2026-02-merge-marina.md",
+        "delivery-reports/2025-09-puzzle-pier.md"
       ],
       "hitRank": 2,
       "recallAt5": true,
       "reciprocalRank": 0.5,
       "isNegativeControl": false,
       "abstentionPassed": true,
-      "latencyMs": 5085,
-      "answerSnippet": "Based on the provided documents:  * **Who runs the delivery review:** The delivery review is run by "
+      "latencyMs": 5854,
+      "answerSnippet": "Based on the provided documents:  * **Who runs the delivery review:** The delivery review is run by a developer from a d"
     },
     {
       "id": "q17_analytics_leak_postmortem",
@@ -307,15 +315,15 @@
       "retrievedDocs": [
         "postmortems/2025-11-analytics-leak.md",
         "network-specs-applovin.md",
-        "qa-checklist.md"
+        "build-pipeline.md"
       ],
       "hitRank": 1,
       "recallAt5": true,
       "reciprocalRank": 1,
       "isNegativeControl": false,
       "abstentionPassed": true,
-      "latencyMs": 5631,
-      "answerSnippet": "Based on the provided documents:  * **Reason for rejection:** An AppLovin build was rejected for an "
+      "latencyMs": 5722,
+      "answerSnippet": "Based on the provided documents:  * **Reason for rejection:** An AppLovin build was rejected for an outbound request bec"
     },
     {
       "id": "q18_negative_control_vacation",
@@ -330,7 +338,7 @@
       "reciprocalRank": 0,
       "isNegativeControl": true,
       "abstentionPassed": true,
-      "latencyMs": 5153,
+      "latencyMs": 5199,
       "answerSnippet": "The provided document corpus does not contain information to answer this question."
     },
     {
@@ -348,8 +356,8 @@
       "reciprocalRank": 0,
       "isNegativeControl": true,
       "abstentionPassed": true,
-      "latencyMs": 5274,
-      "answerSnippet": "The provided document corpus does not contain information to answer this question. Information regar"
+      "latencyMs": 4890,
+      "answerSnippet": "The provided document corpus does not contain information to answer this question. Information about software engineer s"
     },
     {
       "id": "q20_negative_control_kubernetes",
@@ -364,7 +372,7 @@
       "reciprocalRank": 0,
       "isNegativeControl": true,
       "abstentionPassed": true,
-      "latencyMs": 4978,
+      "latencyMs": 4618,
       "answerSnippet": "The provided document corpus does not contain information to answer this question."
     }
   ]

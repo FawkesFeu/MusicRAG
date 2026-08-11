@@ -1,6 +1,6 @@
 import { Router, type Request, type Response, type NextFunction } from 'express';
 import fs from 'fs';
-import { evaluationService } from '../services/evaluation.service.js';
+import { evaluationService, type BenchmarkProgressEvent } from '../services/evaluation.service.js';
 import { authMiddleware, requireRole } from '../middleware/auth.middleware.js';
 
 export const evaluationRouter: Router = Router();
@@ -25,7 +25,40 @@ evaluationRouter.get('/latest', authMiddleware, requireRole('admin'), async (_re
   }
 });
 
-// 2. Trigger live evaluation run (Authenticated Admin)
+// 2. Real-time Server-Sent Events (SSE) Live Benchmark Runner
+evaluationRouter.get('/stream', authMiddleware, requireRole('admin'), async (req: Request, res: Response) => {
+  // Set SSE Headers
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache, no-transform');
+  res.setHeader('Connection', 'keep-alive');
+  res.setHeader('X-Accel-Buffering', 'no');
+  res.flushHeaders?.();
+
+  let isClosed = false;
+  req.on('close', () => {
+    isClosed = true;
+  });
+
+  const sendEvent = (event: BenchmarkProgressEvent) => {
+    if (!isClosed) {
+      res.write(`data: ${JSON.stringify(event)}\n\n`);
+    }
+  };
+
+  try {
+    await evaluationService.runBenchmarkStream(sendEvent);
+    if (!isClosed) {
+      res.end();
+    }
+  } catch (err: any) {
+    if (!isClosed) {
+      res.write(`data: ${JSON.stringify({ type: 'error', error: err.message })}\n\n`);
+      res.end();
+    }
+  }
+});
+
+// 3. Trigger live evaluation run (Standard JSON fallback)
 evaluationRouter.post('/run', authMiddleware, requireRole('admin'), async (_req: Request, res: Response, next: NextFunction) => {
   try {
     const report = await evaluationService.runBenchmark();
@@ -38,7 +71,7 @@ evaluationRouter.post('/run', authMiddleware, requireRole('admin'), async (_req:
   }
 });
 
-// 3. Download JSON evaluation report
+// 4. Download JSON evaluation report
 evaluationRouter.get('/download', authMiddleware, requireRole('admin'), async (_req: Request, res: Response, next: NextFunction) => {
   try {
     const reportPath = evaluationService.getReportFilePath();

@@ -68,24 +68,223 @@ export interface BenchmarkProgressEvent {
   error?: string;
 }
 
+// In-code benchmark dataset ensuring zero missing-file errors in Docker / production environments
+export const DEFAULT_BENCHMARK_ITEMS: BenchmarkItem[] = [
+  {
+    id: 'q1_turkish_onboarding',
+    query: "new dev ilk hafta ne yapıyor lumen'da, bunu kim kontrol ediyor?",
+    category: 'Turkish / Informal',
+    expectedDocuments: ['onboarding-new-dev.md'],
+    expectedKeywords: ['week 1', 'senior developer', 'shadow delivery', 'rebuilds'],
+    isNegativeControl: false,
+  },
+  {
+    id: 'q2_turkish_local_server',
+    query: 'lumen local server olmadan niye patlıyor productionda?',
+    category: 'Turkish / Informal',
+    expectedDocuments: ['network-specs-applovin.md', 'qa-checklist.md', 'build-pipeline.md'],
+    expectedKeywords: ['inlined', 'base64', 'outbound', 'runtime'],
+    isNegativeControl: false,
+  },
+  {
+    id: 'q3_applovin_size_limit',
+    query: 'What is the maximum file size limit for AppLovin playable ads and how are assets packaged?',
+    category: 'Ad Network Specs',
+    expectedDocuments: ['network-specs-applovin.md'],
+    expectedKeywords: ['5 mb', 'single-file html', 'base64'],
+    isNegativeControl: false,
+  },
+  {
+    id: 'q4_unity_meta_packaging',
+    query: 'What is the packaging difference between Unity and Meta playable ads?',
+    category: 'Ad Network Specs',
+    expectedDocuments: ['network-specs-unity-meta.md'],
+    expectedKeywords: ['zip', 'single html', 'index.html'],
+    isNegativeControl: false,
+  },
+  {
+    id: 'q5_sdk_v3_migration',
+    query: 'How do I initialize Lumen SDK v3 and why was lumen.track removed?',
+    category: 'SDK & APIs',
+    expectedDocuments: ['sdk-notes-v3.md'],
+    expectedKeywords: ['lumen.init', 'deprecated', 'lumen-sdk@3'],
+    isNegativeControl: false,
+  },
+  {
+    id: 'q6_audio_build_pipeline',
+    query: 'Why are sound assets built in a separate pass in the build pipeline?',
+    category: 'Build Pipeline',
+    expectedDocuments: ['build-pipeline.md'],
+    expectedKeywords: ['dedicated pass', 'nondeterministic', 'audio', 'size spikes'],
+    isNegativeControl: false,
+  },
+  {
+    id: 'q7_march_incident_postmortem',
+    query: 'What was the root cause of the March 2026 delivery incident?',
+    category: 'Incident Postmortems',
+    expectedDocuments: ['incident-postmortem-2026-03.md'],
+    expectedKeywords: ['audio compression', 'pipeline order', 'reverted'],
+    isNegativeControl: false,
+  },
+  {
+    id: 'q8_pre_delivery_qa',
+    query: 'What checks must be passed on the pre-delivery QA checklist?',
+    category: 'QA & Quality',
+    expectedDocuments: ['qa-checklist.md'],
+    expectedKeywords: ['orientation', 'offline', 'file size', 'cta'],
+    isNegativeControl: false,
+  },
+  {
+    id: 'q9_localization_languages',
+    query: 'What are the required localization languages and what is the fallback behavior?',
+    category: 'Localization',
+    expectedDocuments: ['localization-guide.md', 'qa-checklist.md'],
+    expectedKeywords: ['english fallback', 'minimum languages'],
+    isNegativeControl: false,
+  },
+  {
+    id: 'q10_onboarding_week_two',
+    query: 'What does a new developer do during their second week?',
+    category: 'Onboarding',
+    expectedDocuments: ['onboarding-new-dev.md'],
+    expectedKeywords: ['week 2', 'first real ticket', 'iteration', '3-day scope'],
+    isNegativeControl: false,
+  },
+  {
+    id: 'q11_staging_cdn_access',
+    query: 'Who has production upload rights vs staging CDN access at Lumen?',
+    category: 'Onboarding & Access',
+    expectedDocuments: ['onboarding-new-dev.md'],
+    expectedKeywords: ['staging cdn', 'platform team', 'producers'],
+    isNegativeControl: false,
+  },
+  {
+    id: 'q12_turkish_audio_compression',
+    query: "ses dosyaları niye ayrı derleniyor build pipeline'da?",
+    category: 'Turkish / Informal',
+    expectedDocuments: ['build-pipeline.md'],
+    expectedKeywords: ['sound assets', 'dedicated pass', 'audio'],
+    isNegativeControl: false,
+  },
+  {
+    id: 'q13_turkish_applovin_boyut',
+    query: 'applovin boyut kaç mb ve zip mi html mi?',
+    category: 'Turkish / Informal',
+    expectedDocuments: ['network-specs-applovin.md'],
+    expectedKeywords: ['5 mb', 'single html'],
+    isNegativeControl: false,
+  },
+  {
+    id: 'q14_analytics_taxonomy',
+    query: 'What are the standard analytics events emitted by Lumen playables and when does load_complete fire?',
+    category: 'Analytics & Tracking',
+    expectedDocuments: ['analytics-events.md'],
+    expectedKeywords: ['load_complete', 'first_interaction', 'loop_complete', 'cta_click'],
+    isNegativeControl: false,
+  },
+  {
+    id: 'q15_ui_style_guide_cta',
+    query: 'What are the UI style guide rules for buttons, CTA contrast, and progress bars?',
+    category: 'UI & Design Specs',
+    expectedDocuments: ['style-guide-ui.md'],
+    expectedKeywords: ['contrast', '4.5:1', 'dark scrim', 'progress', '20 seconds'],
+    isNegativeControl: false,
+  },
+  {
+    id: 'q16_creative_review_process',
+    query: 'Who runs the delivery review before client release and why is it from a different pod?',
+    category: 'Creative & Review Process',
+    expectedDocuments: ['guides/review-process.md', 'review-process.md'],
+    expectedKeywords: ['different pod', 'two internal reviews', 'staging cdn'],
+    isNegativeControl: false,
+  },
+  {
+    id: 'q17_analytics_leak_postmortem',
+    query: 'Why was an AppLovin build rejected in November 2025 and how was the analytics leak fixed?',
+    category: 'Incident Postmortems',
+    expectedDocuments: ['postmortems/2025-11-analytics-leak.md', '2025-11-analytics-leak.md'],
+    expectedKeywords: ['debug flag', 'outbound request', 'analytics buffer'],
+    isNegativeControl: false,
+  },
+  {
+    id: 'q18_negative_control_vacation',
+    query: 'What is the company annual vacation and sick leave policy?',
+    category: 'Negative Control (Off-Corpus)',
+    expectedDocuments: [],
+    expectedKeywords: [],
+    isNegativeControl: true,
+  },
+  {
+    id: 'q19_negative_control_salaries',
+    query: 'What are the software engineer salary bands and bonus structures?',
+    category: 'Negative Control (Off-Corpus)',
+    expectedDocuments: [],
+    expectedKeywords: [],
+    isNegativeControl: true,
+  },
+  {
+    id: 'q20_negative_control_kubernetes',
+    query: 'How do we configure a Kubernetes ingress controller on AWS EKS?',
+    category: 'Negative Control (Off-Corpus)',
+    expectedDocuments: [],
+    expectedKeywords: [],
+    isNegativeControl: true,
+  },
+];
+
+let inMemoryCachedReport: BenchmarkReport | null = null;
+
 export const evaluationService = {
   getReportFilePath(): string {
-    return path.resolve(__dirname, '../evaluation/benchmark_report.json');
+    const dir = path.resolve(process.cwd(), '.rag_data');
+    if (!fs.existsSync(dir)) {
+      try {
+        fs.mkdirSync(dir, { recursive: true });
+      } catch {}
+    }
+    return path.resolve(dir, 'benchmark_report.json');
   },
 
   getQueriesFilePath(): string {
-    return path.resolve(__dirname, '../evaluation/benchmark-queries.json');
+    const candidates = [
+      path.resolve(process.cwd(), 'apps/api/src/evaluation/benchmark-queries.json'),
+      path.resolve(process.cwd(), 'src/evaluation/benchmark-queries.json'),
+      path.resolve(__dirname, '../evaluation/benchmark-queries.json'),
+      path.resolve(__dirname, '../../src/evaluation/benchmark-queries.json'),
+    ];
+    return candidates.find((c) => fs.existsSync(c)) || candidates[0];
+  },
+
+  async loadBenchmarkQueries(): Promise<BenchmarkItem[]> {
+    const queriesPath = this.getQueriesFilePath();
+    if (fs.existsSync(queriesPath)) {
+      try {
+        const raw = await fs.promises.readFile(queriesPath, 'utf-8');
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed;
+        }
+      } catch (err) {
+        console.warn('[EvaluationService] Error reading benchmark queries file, using embedded items:', err);
+      }
+    }
+    return DEFAULT_BENCHMARK_ITEMS;
   },
 
   /**
    * Retrieves the latest cached benchmark evaluation report.
    */
   async getLatestReport(): Promise<BenchmarkReport | null> {
+    if (inMemoryCachedReport) {
+      return inMemoryCachedReport;
+    }
+
     const reportPath = this.getReportFilePath();
     if (fs.existsSync(reportPath)) {
       try {
         const raw = await fs.promises.readFile(reportPath, 'utf-8');
-        return JSON.parse(raw);
+        inMemoryCachedReport = JSON.parse(raw);
+        return inMemoryCachedReport;
       } catch (err) {
         console.error('[EvaluationService] Error reading benchmark report:', err);
       }
@@ -98,12 +297,7 @@ export const evaluationService = {
    * emitting progress events for live UX streaming.
    */
   async runBenchmarkStream(onProgress?: (event: BenchmarkProgressEvent) => void): Promise<BenchmarkReport> {
-    const queriesPath = this.getQueriesFilePath();
-    if (!fs.existsSync(queriesPath)) {
-      throw new Error(`Benchmark queries file not found at: ${queriesPath}`);
-    }
-
-    const items: BenchmarkItem[] = JSON.parse(await fs.promises.readFile(queriesPath, 'utf-8'));
+    const items = await this.loadBenchmarkQueries();
     const results: EvaluationItemResult[] = [];
 
     console.log(`[EvaluationService] 🚀 Starting live benchmark evaluation across ${items.length} scenarios...`);
@@ -111,7 +305,6 @@ export const evaluationService = {
     for (let i = 0; i < items.length; i++) {
       const item = items[i];
 
-      // Emit scenario start event
       if (onProgress) {
         onProgress({
           type: 'scenario_start',
@@ -138,31 +331,45 @@ export const evaluationService = {
         const ragResponse = await ragService.generateAnswer(item.query, chunks);
         const latencyMs = Date.now() - startTime;
 
-        const retrievedFilenames = chunks.map((c) => c.filename);
+        const retrievedFilenames = chunks.map((c) => path.basename(c.filename));
+        const answerSnippet = (ragResponse.answer || '').slice(0, 180).trim() + (ragResponse.answer?.length > 180 ? '...' : '');
 
-        let hitRank: number | null = null;
         let recallAt5 = false;
+        let hitRank: number | null = null;
         let reciprocalRank = 0;
-        let abstentionPassed = true;
+        let abstentionPassed = false;
 
-        if (!item.isNegativeControl) {
-          for (let r = 0; r < retrievedFilenames.length; r++) {
-            const fn = retrievedFilenames[r];
-            if (item.expectedDocuments.some((exp) => fn.toLowerCase().includes(exp.toLowerCase()))) {
-              hitRank = r + 1;
+        if (item.isNegativeControl) {
+          const isGrounded = ragResponse.isCorpusGrounded;
+          const textLow = (ragResponse.answer || '').toLowerCase();
+          const abstained =
+            !isGrounded ||
+            textLow.includes('does not contain') ||
+            textLow.includes('not covered') ||
+            textLow.includes('not available') ||
+            textLow.includes('no information');
+
+          abstentionPassed = abstained;
+          recallAt5 = abstained;
+          reciprocalRank = abstained ? 1.0 : 0.0;
+        } else {
+          for (let rank = 0; rank < retrievedFilenames.length; rank++) {
+            const retrieved = retrievedFilenames[rank];
+            const isMatch = item.expectedDocuments.some((exp) => {
+              const expBase = path.basename(exp);
+              return retrieved.includes(expBase) || expBase.includes(retrieved);
+            });
+
+            if (isMatch) {
               recallAt5 = true;
-              reciprocalRank = 1 / hitRank;
+              hitRank = rank + 1;
+              reciprocalRank = 1 / (rank + 1);
               break;
             }
           }
-        } else {
-          // Negative control: should abstain honestly with no fake citations
-          abstentionPassed = !ragResponse.isCorpusGrounded || ragResponse.citations.length === 0;
         }
 
-        const answerSnippet = ragResponse.answer.slice(0, 140).replace(/\n/g, ' ');
-
-        const evalResult: EvaluationItemResult = {
+        const itemResult: EvaluationItemResult = {
           id: item.id,
           category: item.category,
           query: item.query,
@@ -176,9 +383,8 @@ export const evaluationService = {
           answerSnippet,
         };
 
-        results.push(evalResult);
+        results.push(itemResult);
 
-        // Emit scenario complete event
         if (onProgress) {
           onProgress({
             type: 'scenario_complete',
@@ -189,8 +395,12 @@ export const evaluationService = {
               category: item.category,
               query: item.query,
               status: item.isNegativeControl
-                ? (abstentionPassed ? 'abstained' : 'failed')
-                : (recallAt5 ? 'passed' : 'miss'),
+                ? abstentionPassed
+                  ? 'abstained'
+                  : 'failed'
+                : recallAt5
+                ? 'passed'
+                : 'miss',
               recallAt5,
               hitRank,
               retrievedDocs: retrievedFilenames,
@@ -236,13 +446,12 @@ export const evaluationService = {
         }
       }
 
-      // 1.2s pacing between questions to safeguard API quotas
+      // Small throttle to stay safely within Gemini rate limits
       if (i < items.length - 1) {
-        await new Promise((resolve) => setTimeout(resolve, 1200));
+        await new Promise((resolve) => setTimeout(resolve, 800));
       }
     }
 
-    // Compute aggregated metrics
     const factualItems = results.filter((r) => !r.isNegativeControl);
     const negativeItems = results.filter((r) => r.isNegativeControl);
 
@@ -279,13 +488,14 @@ export const evaluationService = {
       results,
     };
 
-    // Save to report file
+    inMemoryCachedReport = report;
+
     try {
       const reportPath = this.getReportFilePath();
       await fs.promises.writeFile(reportPath, JSON.stringify(report, null, 2), 'utf-8');
       console.log(`[EvaluationService] ✅ Benchmark report saved to: ${reportPath}`);
     } catch (saveErr) {
-      console.error('[EvaluationService] Failed to persist report file:', saveErr);
+      console.warn('[EvaluationService] Note on report file save:', (saveErr as Error).message);
     }
 
     if (onProgress) {

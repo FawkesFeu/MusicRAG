@@ -137,6 +137,32 @@ export const apiClient = {
       const reader = response.body.getReader();
       const decoder = new TextDecoder('utf-8');
       let buffer = '';
+      let currentEvent = 'message';
+
+      const parseLine = (line: string) => {
+        const trimmed = line.trim();
+        if (!trimmed) return;
+
+        if (trimmed.startsWith('event:')) {
+          currentEvent = trimmed.substring(6).trim();
+        } else if (trimmed.startsWith('data:')) {
+          const dataStr = trimmed.substring(5).trim();
+          try {
+            const data = JSON.parse(dataStr);
+            if (currentEvent === 'metadata') {
+              callbacks.onMetadata?.(data);
+            } else if (currentEvent === 'delta') {
+              callbacks.onDelta?.(data.delta);
+            } else if (currentEvent === 'done') {
+              callbacks.onDone?.(data);
+            } else if (currentEvent === 'error') {
+              callbacks.onError?.(new Error(data.error || 'Streaming error'));
+            }
+          } catch (e) {
+            console.warn('[SSE] Error parsing stream line:', dataStr);
+          }
+        }
+      };
 
       while (true) {
         const { done, value } = await reader.read();
@@ -147,31 +173,16 @@ export const apiClient = {
         // Keep trailing incomplete line in buffer
         buffer = lines.pop() || '';
 
-        let currentEvent = 'message';
-
         for (const line of lines) {
-          const trimmed = line.trim();
-          if (!trimmed) continue;
+          parseLine(line);
+        }
+      }
 
-          if (trimmed.startsWith('event:')) {
-            currentEvent = trimmed.substring(6).trim();
-          } else if (trimmed.startsWith('data:')) {
-            const dataStr = trimmed.substring(5).trim();
-            try {
-              const data = JSON.parse(dataStr);
-              if (currentEvent === 'metadata') {
-                callbacks.onMetadata?.(data);
-              } else if (currentEvent === 'delta') {
-                callbacks.onDelta?.(data.delta);
-              } else if (currentEvent === 'done') {
-                callbacks.onDone?.(data);
-              } else if (currentEvent === 'error') {
-                callbacks.onError?.(new Error(data.error || 'Streaming error'));
-              }
-            } catch (e) {
-              console.warn('[SSE] Error parsing stream line:', dataStr);
-            }
-          }
+      // Flush and parse any remaining buffer
+      if (buffer.trim()) {
+        const remainingLines = buffer.split('\n');
+        for (const line of remainingLines) {
+          parseLine(line);
         }
       }
     } catch (err: any) {

@@ -28,6 +28,33 @@ export default function ChatPage() {
   const activeMsgIdRef = useRef<string | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
 
+  // Load chat history from localStorage on mount
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('rag_chat_history');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setMessages(parsed);
+        }
+      }
+    } catch (e) {
+      console.warn('Failed to load chat history from localStorage:', e);
+    }
+  }, []);
+
+  // Save chat history to localStorage whenever messages change
+  useEffect(() => {
+    if (messages.length > 0) {
+      try {
+        const sanitized = messages.map((m) => ({ ...m, isStreaming: false }));
+        localStorage.setItem('rag_chat_history', JSON.stringify(sanitized));
+      } catch (e) {
+        console.warn('Failed to persist chat history:', e);
+      }
+    }
+  }, [messages]);
+
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
@@ -62,7 +89,6 @@ export default function ChatPage() {
 
     const processNext = () => {
       if (tokenQueueRef.current.length > 0) {
-        // Pop 1-2 tokens (speeds up slightly if queue grows large to stay responsive)
         const qLen = tokenQueueRef.current.length;
         const popCount = qLen > 30 ? 3 : qLen > 12 ? 2 : 1;
         const nextTokens = tokenQueueRef.current.splice(0, popCount).join('');
@@ -75,11 +101,9 @@ export default function ChatPage() {
           )
         );
 
-        // Word-by-word typewriter pacing (~20-25ms)
         const delay = qLen > 25 ? 12 : 22;
         typingTimerRef.current = setTimeout(processNext, delay);
       } else if (pendingDoneRef.current) {
-        // Queue is drained and final response data arrived
         const doneData = pendingDoneRef.current;
         pendingDoneRef.current = null;
         isTypingRef.current = false;
@@ -99,7 +123,6 @@ export default function ChatPage() {
         );
         setLoading(false);
       } else {
-        // Queue temporarily empty, check again shortly for next network delta
         typingTimerRef.current = setTimeout(processNext, 25);
       }
     };
@@ -111,14 +134,11 @@ export default function ChatPage() {
     const text = queryText || input.trim();
     if (!text || loading) return;
 
-    // Reset previous typewriter if any
     stopTypewriter();
-
     setInput('');
     const userMsgId = `user-${Date.now()}`;
     const assistantMsgId = `asst-${Date.now()}`;
 
-    // 1. Add user message
     const userMessage: MessageItem = {
       id: userMsgId,
       role: 'user',
@@ -126,7 +146,6 @@ export default function ChatPage() {
       timestamp: new Date().toISOString(),
     };
 
-    // 2. Add placeholder streaming assistant message
     const initialAssistantMessage: MessageItem = {
       id: assistantMsgId,
       role: 'assistant',
@@ -140,6 +159,7 @@ export default function ChatPage() {
 
     const abortController = new AbortController();
     abortControllerRef.current = abortController;
+    let finalDoneData: any = null;
 
     try {
       await apiClient.streamSearch(
@@ -149,18 +169,15 @@ export default function ChatPage() {
           generateAnswer: true,
         },
         {
-          onMetadata: (_meta) => {
-            // Metadata arrived
-          },
+          onMetadata: (_meta) => {},
           onDelta: (delta) => {
-            // Tokenize delta into words & whitespace for natural typewriter pacing
             const tokens = delta.match(/\s+|[^\s]+/g) || [delta];
             tokenQueueRef.current.push(...tokens);
             startTypewriter(assistantMsgId);
           },
           onDone: (doneData) => {
+            finalDoneData = doneData;
             pendingDoneRef.current = doneData;
-            // Ensure typewriter starts/continues to drain remaining tokens
             startTypewriter(assistantMsgId);
           },
           onError: (err) => {
@@ -170,7 +187,7 @@ export default function ChatPage() {
                 msg.id === assistantMsgId
                   ? {
                       ...msg,
-                      content: `Error retrieving grounded answer: ${err.message || 'Network error'}. Please ensure the backend is running.`,
+                      content: `Error: ${err.message || 'Network error'}`,
                       isStreaming: false,
                     }
                   : msg
@@ -181,6 +198,24 @@ export default function ChatPage() {
         },
         abortController.signal
       );
+
+      // Ensure final state and citations are always locked in when stream concludes
+      if (finalDoneData) {
+        setMessages((prev) =>
+          prev.map((msg) =>
+            msg.id === assistantMsgId
+              ? {
+                  ...msg,
+                  content: finalDoneData.answer || msg.content,
+                  ragData: finalDoneData,
+                  isStreaming: false,
+                }
+              : msg
+          )
+        );
+        stopTypewriter();
+        setLoading(false);
+      }
     } catch (err: any) {
       stopTypewriter();
       setMessages((prev) =>
@@ -188,7 +223,7 @@ export default function ChatPage() {
           msg.id === assistantMsgId
             ? {
                 ...msg,
-                content: `Error retrieving grounded answer: ${err.message || 'Network error'}. Please ensure the backend is running.`,
+                content: `Error: ${err.message || 'Network error'}`,
                 isStreaming: false,
               }
             : msg
@@ -202,6 +237,9 @@ export default function ChatPage() {
     stopTypewriter();
     if (abortControllerRef.current) abortControllerRef.current.abort();
     setMessages([]);
+    try {
+      localStorage.removeItem('rag_chat_history');
+    } catch {}
     setLoading(false);
   };
 

@@ -175,6 +175,20 @@ export function EvaluationSuite({
                   setReport(event.report);
                 }
                 setCurrentScenario(null);
+              } else if (event.type === 'error') {
+                console.error('Benchmark server error event:', event.error);
+                setLiveLogs((prev) => [
+                  ...prev,
+                  {
+                    id: `err-${Date.now()}`,
+                    index: prev.length + 1,
+                    total: 20,
+                    query: 'Benchmark Error',
+                    category: 'System',
+                    status: 'failed',
+                    answerSnippet: event.error || 'An error occurred during evaluation',
+                  },
+                ]);
               }
             } catch (err) {
               console.error('Error parsing SSE event chunk:', err);

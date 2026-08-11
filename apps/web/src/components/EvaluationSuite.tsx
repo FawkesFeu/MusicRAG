@@ -191,8 +191,8 @@ export function EvaluationSuite({
                   query: event.scenario.query || '',
                   category: event.scenario.category || 'General',
                 });
-              } else if (event.type === 'scenario_complete' && event.scenarioResult) {
-                const s = event.scenarioResult;
+              } else if (event.type === 'scenario_complete' && (event.scenario || event.scenarioResult)) {
+                const s = event.scenario || event.scenarioResult;
                 setLiveLogs((prev) => [
                   ...prev,
                   {

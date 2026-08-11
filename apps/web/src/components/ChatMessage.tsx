@@ -152,6 +152,24 @@ function buildInlineContent(
   return parts;
 }
 
+/**
+ * Apply buildInlineContent to every direct string child of a React node list.
+ * Non-string children (e.g. <strong>, <em>) are returned as-is so that
+ * react-markdown's own nesting is preserved.
+ */
+function enrichChildren(
+  children: React.ReactNode,
+  groups: GroupedCitation[],
+  onOpen: (g: GroupedCitation) => void,
+): React.ReactNode {
+  return React.Children.map(children, (child) => {
+    if (typeof child !== 'string') return child;
+    const nodes = buildInlineContent(child, groups, onOpen);
+    if (nodes.length === 1 && typeof nodes[0] === 'string') return nodes[0];
+    return <>{nodes}</>;
+  });
+}
+
 // ── Component ────────────────────────────────────────────────────────────────
 
 export function ChatMessage({ message }: ChatMessageProps) {
@@ -252,20 +270,14 @@ export function ChatMessage({ message }: ChatMessageProps) {
                     h1: ({ children }) => <h1 className="text-lg font-bold text-white mt-4 mb-2 border-b border-slate-700 pb-1">{children}</h1>,
                     h2: ({ children }) => <h2 className="text-base font-bold text-white mt-3 mb-1.5">{children}</h2>,
                     h3: ({ children }) => <h3 className="text-sm font-semibold text-slate-200 mt-2 mb-1">{children}</h3>,
-                    p: ({ node, children }) => {
-                      // Convert each string child through our inline citation replacer
-                      const enriched = React.Children.map(children, (child) => {
-                        if (typeof child !== 'string') return child;
-                        const nodes = buildInlineContent(child, groups, setSelectedGroup);
-                        return nodes.length === 1 && typeof nodes[0] === 'string' ? nodes[0] : <>{nodes}</>;
-                      });
-                      return <p className="mb-2 last:mb-0 text-slate-100">{enriched}</p>;
+                    p: ({ children }) => {
+                      return <p className="mb-2 last:mb-0 text-slate-100">{enrichChildren(children, groups, setSelectedGroup)}</p>;
                     },
                     ul: ({ children }) => <ul className="list-disc list-inside space-y-1 mb-2 text-slate-200 pl-1">{children}</ul>,
                     ol: ({ children }) => <ol className="list-decimal list-inside space-y-1 mb-2 text-slate-200 pl-1">{children}</ol>,
-                    li: ({ children }) => <li className="text-slate-200 leading-relaxed">{children}</li>,
-                    strong: ({ children }) => <strong className="font-semibold text-white">{children}</strong>,
-                    em: ({ children }) => <em className="text-slate-300 italic">{children}</em>,
+                    li: ({ children }) => <li className="text-slate-200 leading-relaxed">{enrichChildren(children, groups, setSelectedGroup)}</li>,
+                    strong: ({ children }) => <strong className="font-semibold text-white">{enrichChildren(children, groups, setSelectedGroup)}</strong>,
+                    em: ({ children }) => <em className="text-slate-300 italic">{enrichChildren(children, groups, setSelectedGroup)}</em>,
                     code: ({ children, className }) => {
                       const isBlock = className?.includes('language-');
                       return isBlock

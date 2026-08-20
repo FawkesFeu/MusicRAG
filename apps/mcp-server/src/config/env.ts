@@ -14,9 +14,9 @@ export const env = {
   MCP_API_TOKEN: process.env.MCP_API_TOKEN || 'mcp-secret-token-rag-2026',
   
   // OIDC Resource Server Configuration
-  OIDC_ISSUER: process.env.OIDC_ISSUER || 'https://auth.playablefactory.com/',
-  OIDC_AUDIENCE: process.env.OIDC_AUDIENCE || 'https://mcp.playablefactory.com',
-  OIDC_JWKS_URI: process.env.OIDC_JWKS_URI || 'https://auth.playablefactory.com/.well-known/jwks.json',
+  OIDC_ISSUER: process.env.OIDC_ISSUER || 'https://auth.musicrag.local/',
+  OIDC_AUDIENCE: process.env.OIDC_AUDIENCE || 'https://mcp.musicrag.local',
+  OIDC_JWKS_URI: process.env.OIDC_JWKS_URI || 'https://auth.musicrag.local/.well-known/jwks.json',
   OIDC_REQUIRED_SCOPE: process.env.OIDC_REQUIRED_SCOPE || 'mcp:search',
   MCP_ENABLE_OIDC: process.env.MCP_ENABLE_OIDC !== 'false',
 };

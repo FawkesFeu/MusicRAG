@@ -18,8 +18,8 @@ export const env = {
   DATABASE_URL: process.env.DATABASE_URL || 'postgresql://dev:dev_password@localhost:5432/rag_search_dev',
   REDIS_URL: process.env.REDIS_URL || 'redis://localhost:6379',
   
-  JWT_SECRET: process.env.JWT_SECRET || 'dev-secret-jwt-key-minimum-32-chars-rag-playable-factory',
-  JWT_REFRESH_SECRET: process.env.JWT_REFRESH_SECRET || 'dev-refresh-secret-jwt-key-minimum-32-chars-rag-playable-factory',
+  JWT_SECRET: process.env.JWT_SECRET || 'dev-secret-jwt-key-minimum-32-chars-rag-music-industry',
+  JWT_REFRESH_SECRET: process.env.JWT_REFRESH_SECRET || 'dev-refresh-secret-jwt-key-minimum-32-chars-rag-music-industry',
   
   GEMINI_API_KEY: process.env.GEMINI_API_KEY || '',
   GEMINI_MODEL: process.env.GEMINI_MODEL || 'gemini-3.5-flash-lite',

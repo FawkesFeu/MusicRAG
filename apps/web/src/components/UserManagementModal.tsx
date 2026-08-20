@@ -182,7 +182,7 @@ export function UserManagementModal({ isOpen, onClose, onUserCreated }: UserMana
                     required
                     value={inviteEmail}
                     onChange={(e) => setInviteEmail(e.target.value)}
-                    placeholder="e.g. dev@playablefactory.com"
+                    placeholder="e.g. dev@musicrag.local"
                     className="w-full rounded-xl border border-dark-border bg-dark-card px-3.5 py-2 text-sm text-white focus:border-brand-500 focus:outline-none"
                   />
                   <p className="text-[11px] text-slate-500 mt-1">
@@ -341,7 +341,7 @@ export function UserManagementModal({ isOpen, onClose, onUserCreated }: UserMana
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="e.g. elena@playablefactory.com"
+                placeholder="e.g. elena@musicrag.local"
                 className="w-full rounded-xl border border-dark-border bg-dark-card px-3.5 py-2 text-sm text-white focus:border-brand-500 focus:outline-none"
               />
             </div>

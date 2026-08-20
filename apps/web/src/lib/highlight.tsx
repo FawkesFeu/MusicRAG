@@ -13,7 +13,7 @@ const STOP_WORDS = new Set([
 export function extractSearchKeywords(query?: string): string[] {
   if (!query || typeof query !== 'string') return [];
 
-  // Match words, hyphenated words, dots (e.g. lumen.track, 5MB, v3, applovin)
+  // Match words, hyphenated words, dots (e.g. spotify, LUFS, ISRC, ASCAP)
   const rawTokens = query
     .replace(/["'?.,!]/g, ' ')
     .split(/\s+/)

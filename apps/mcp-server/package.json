@@ -2,6 +2,7 @@
   "name": "@rag/mcp-server",
   "version": "1.0.0",
   "private": true,
+  "license": "MIT",
   "type": "module",
   "bin": {
     "rag-mcp-server": "./dist/server.js"

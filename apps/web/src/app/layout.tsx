@@ -4,8 +4,8 @@ import { AuthProvider } from '../contexts/AuthContext';
 import '../styles/globals.css';
 
 export const metadata: Metadata = {
-  title: 'Playable Factory - RAG Vector Search Platform',
-  description: 'Grounded question answering, document indexing, and semantic search powered by Gemini & pgvector',
+  title: 'Music Industry RAG - Vector Search Platform',
+  description: 'Grounded question answering, document indexing, and semantic search powered by Gemini & pgvector for the Music Industry',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

@@ -10,7 +10,7 @@ import { oidcService, OidcAuthError, type AuthenticatedUser } from './auth/oidc.
 
 const server = new Server(
   {
-    name: 'playable-factory-rag-search',
+    name: 'music-industry-rag-search',
     version: '1.0.0',
   },
   {
@@ -26,13 +26,13 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
     tools: [
       {
         name: 'semantic_search',
-        description: 'Semantically search the Playable Factory knowledge base corpus and retrieve grounded answers with citations. Requires OIDC Bearer Token with "mcp:search" scope.',
+        description: 'Semantically search the Music Industry knowledge base corpus and retrieve grounded answers with citations. Requires OIDC Bearer Token with "mcp:search" scope.',
         inputSchema: {
           type: 'object',
           properties: {
             query: {
               type: 'string',
-              description: 'Natural language question or search query (e.g., "What is the AppLovin maximum bundle size?")',
+              description: 'Natural language question or search query (e.g., "What is the recommended Spotify LUFS limit?")',
             },
             topK: {
               type: 'number',
@@ -280,7 +280,7 @@ export function startHttpServer(port: number = env.MCP_SERVER_PORT) {
   });
 
   httpServer.listen(port, () => {
-    console.error(`[MCP] Playable Factory RAG MCP Server listening on HTTP port ${port}`);
+    console.error(`[MCP] Music Industry RAG MCP Server listening on HTTP port ${port}`);
     console.error(`[MCP] OIDC Protected Resource Discovery: http://localhost:${port}/.well-known/oauth-protected-resource`);
   });
 
@@ -297,7 +297,7 @@ async function main() {
   // Also connect to Stdio Transport for desktop LLM agents
   const transport = new StdioServerTransport();
   await server.connect(transport);
-  console.error('[MCP] Playable Factory RAG MCP Server running over stdio & HTTP.');
+  console.error('[MCP] Music Industry RAG MCP Server running over stdio & HTTP.');
 }
 
 // Auto-run if executed directly

@@ -84,7 +84,7 @@ export const rerankerService = {
       snippet: c.content.length > 180 ? `${c.content.slice(0, 180)}...` : c.content,
     }));
 
-    const prompt = `You are an expert search cross-encoder for the Playable Factory & Lumen engineering knowledge base.
+    const prompt = `You are an expert search cross-encoder for the Music Industry & Audio Engineering knowledge base.
 Evaluate how factually relevant each candidate chunk is for answering the user question.
 
 USER QUESTION (Original): "${originalQuery}"
@@ -96,15 +96,15 @@ ${JSON.stringify(candidatePayload, null, 2)}
 TASK:
 Output a JSON array of objects evaluating EVERY candidate:
 [
-  { "id": "chunkId", "score": 0.95, "reason": "Direct answer for week 1 onboarding" }
+  { "id": "chunkId", "score": 0.95, "reason": "Direct answer for Spotify LUFS target and true peak ceiling" }
 ]
 
 SCORING GUIDELINES:
-- Score 0.85 - 1.00: Chunk directly contains the specific factual answer, rule, or permissions.
+- Score 0.85 - 1.00: Chunk directly contains the specific factual answer, rule, contract split, or technical spec.
 - Score 0.50 - 0.84: Chunk provides relevant background context.
 - Score 0.20 - 0.49: Chunk is somewhat related to domain but does not answer the question.
 - Score 0.00 - 0.19: Chunk is completely unrelated or belongs to a different topic.
-- CORE DOC PREFERENCE: Give primary architectural specifications & onboarding guides (e.g. "onboarding-new-dev.md", "build-pipeline.md", "network-specs-applovin.md") higher scores than minor changelog snippets or sync meeting notes unless the query specifically asks for a changelog or meeting note.
+- CORE DOC PREFERENCE: Give primary technical specifications & licensing guides (e.g. "digital-audio-workstation-and-mastering-specs.md", "streaming-royalties-and-payouts.md", "music-licensing-and-sync-guide.md") higher scores than general background text unless the query specifically asks for other topics.
 
 Output ONLY the raw JSON array. No markdown code blocks, no explanation.`;
 
@@ -145,15 +145,11 @@ Output ONLY the raw JSON array. No markdown code blocks, no explanation.`;
       const fnLower = c.filename.toLowerCase();
       const isChangelog = fnLower.startsWith('changelogs/');
 
-      // Authoritative core specification prior over changelogs
+      // Authoritative core specification prior
       if (
-        (fnLower === 'build-pipeline.md' || fnLower === 'onboarding-new-dev.md' || fnLower.includes('network-specs-') || fnLower === 'qa-checklist.md') &&
-        !originalQuery.toLowerCase().includes('changelog') &&
-        !originalQuery.toLowerCase().includes('4.')
+        (fnLower.includes('digital-audio-workstation') || fnLower.includes('streaming-royalties') || fnLower.includes('music-licensing'))
       ) {
-        llmScore = Math.min(1.0, llmScore + 0.30);
-      } else if (isChangelog && !originalQuery.toLowerCase().includes('changelog') && !originalQuery.toLowerCase().includes('4.')) {
-        llmScore = llmScore * 0.65; // Demote historical release notes for general questions
+        llmScore = Math.min(1.0, llmScore + 0.20);
       }
 
       const baseSimilarity = c.similarity || 0;
@@ -197,51 +193,61 @@ Output ONLY the raw JSON array. No markdown code blocks, no explanation.`;
       const tokenRatio = queryTokens.length > 0 ? matchCount / queryTokens.length : 0;
       score += Math.min(tokenRatio, 1.0) * 0.30;
 
-      // Domain & Authoritative boosts
+      // Music Industry Domain & Topic Boosts
       if (
-        (combined.includes('onboard') || combined.includes('new dev') || combined.includes('ilk hafta') || combined.includes('first week') || combined.includes('kontrol') || combined.includes('review') || combined.includes('staging cdn') || combined.includes('upload rights')) &&
-        (filenameLower.includes('onboarding') || titleLower.includes('onboarding'))
+        (combined.includes('royalty') || combined.includes('stream') || combined.includes('payout') || combined.includes('pro-rata') || combined.includes('telif')) &&
+        filenameLower.includes('streaming-royalties')
       ) {
-        score += 0.45;
+        score += 0.40;
       }
 
       if (
-        (combined.includes('sound') || combined.includes('audio') || combined.includes('ses') || combined.includes('derleniyor') || combined.includes('separate pass')) &&
-        filenameLower === 'build-pipeline.md'
+        (combined.includes('sync') || combined.includes('master use') || combined.includes('lisans') || combined.includes('cue sheet')) &&
+        filenameLower.includes('music-licensing')
       ) {
-        score += 0.55;
+        score += 0.40;
       }
 
       if (
-        filenameLower.startsWith('changelogs/') &&
-        !combined.includes('changelog') &&
-        !combined.includes('4.')
+        (combined.includes('lufs') || combined.includes('daw') || combined.includes('sample rate') || combined.includes('mastering') || combined.includes('true peak')) &&
+        filenameLower.includes('digital-audio-workstation')
       ) {
-        score -= 0.20; // Demote changelogs for architectural questions
+        score += 0.40;
       }
 
       if (
-        (combined.includes('server') || combined.includes('local') || combined.includes('production') || combined.includes('patlıyor') || combined.includes('offline') || combined.includes('inline') || combined.includes('outbound')) &&
-        (filenameLower.includes('network-specs-applovin') || filenameLower.includes('qa-checklist') || filenameLower === 'build-pipeline.md')
+        (combined.includes('isrc') || combined.includes('iswc') || combined.includes('upc') || combined.includes('ddex') || combined.includes('metadata')) &&
+        filenameLower.includes('music-distribution')
       ) {
-        score += 0.25;
+        score += 0.40;
       }
 
-      if (combined.includes('applovin') && (filenameLower.includes('applovin') || titleLower.includes('applovin'))) {
-        score += 0.25;
+      if (
+        (combined.includes('rider') || combined.includes('tour') || combined.includes('guarantee') || combined.includes('door split') || combined.includes('konser')) &&
+        filenameLower.includes('live-touring')
+      ) {
+        score += 0.40;
       }
-      if (combined.includes('unity') && (filenameLower.includes('unity') || titleLower.includes('unity'))) {
-        score += 0.25;
+
+      if (
+        (combined.includes('360') || combined.includes('label') || combined.includes('recoup') || combined.includes('advance')) &&
+        filenameLower.includes('record-label')
+      ) {
+        score += 0.40;
       }
-      if (combined.includes('meta') && (filenameLower.includes('meta') || titleLower.includes('meta'))) {
-        score += 0.25;
+
+      if (
+        (combined.includes('sample') || combined.includes('clearance') || combined.includes('interpolation') || combined.includes('copyright')) &&
+        filenameLower.includes('music-copyright')
+      ) {
+        score += 0.40;
       }
-      if (combined.includes('sdk') || combined.includes('lumen')) {
-        if (filenameLower.includes('v3') || contentLower.includes('lumen-sdk@3')) score += 0.25;
-        if (filenameLower.includes('v2') && !combined.includes('v2')) score -= 0.15;
-      }
-      if (combined.includes('march 2026') || (combined.includes('incident') && !combined.includes('process'))) {
-        if (filenameLower.includes('incident-postmortem-2026-03')) score += 0.35;
+
+      if (
+        (combined.includes('checklist') || combined.includes('pitch') || combined.includes('rollout') || combined.includes('pre-save')) &&
+        filenameLower.includes('artist-onboarding')
+      ) {
+        score += 0.40;
       }
 
       score += (1 / (originalRank + 1)) * 0.05;
@@ -276,12 +282,14 @@ Output ONLY the raw JSON array. No markdown code blocks, no explanation.`;
 
     const getClusterKey = (filename: string): string => {
       const fn = filename.toLowerCase();
-      if (fn.startsWith('changelogs/')) return 'cluster:changelogs';
-      if (fn.includes('build-pipeline')) return 'cluster:build_pipeline';
-      if (fn.includes('incident-postmortem') || fn.includes('postmortems/')) return 'cluster:incidents';
-      if (fn.includes('meeting-notes/')) return 'cluster:meeting_notes';
-      if (fn.includes('delivery-reports/')) return 'cluster:delivery_reports';
-      if (fn.includes('client-briefs/')) return 'cluster:client_briefs';
+      if (fn.includes('streaming-royalties')) return 'cluster:royalties';
+      if (fn.includes('music-licensing')) return 'cluster:licensing';
+      if (fn.includes('digital-audio-workstation')) return 'cluster:daw_specs';
+      if (fn.includes('music-distribution')) return 'cluster:metadata';
+      if (fn.includes('live-touring')) return 'cluster:touring';
+      if (fn.includes('record-label')) return 'cluster:label_deals';
+      if (fn.includes('music-copyright')) return 'cluster:copyright';
+      if (fn.includes('artist-onboarding')) return 'cluster:checklist';
       return `doc:${fn}`;
     };
 

@@ -1,142 +1,126 @@
 [
   {
-    "id": "q1_turkish_onboarding",
-    "query": "new dev ilk hafta ne yapıyor lumen'da, bunu kim kontrol ediyor?",
+    "id": "q1_spotify_apple_lufs",
+    "query": "What are the integrated LUFS targets and true peak limits for Spotify vs Apple Music?",
+    "category": "DAW & Mastering Specs",
+    "expectedDocuments": ["digital-audio-workstation-and-mastering-specs.md"],
+    "expectedKeywords": ["-14 LUFS", "-16 LUFS", "-1.0 dBTP", "true peak"],
+    "isNegativeControl": false
+  },
+  {
+    "id": "q2_pro_rata_vs_user_centric",
+    "query": "How does the pro-rata streaming royalty model work compared to the user-centric model?",
+    "category": "Streaming Royalties",
+    "expectedDocuments": ["streaming-royalties-and-payouts.md"],
+    "expectedKeywords": ["market share", "royalty bucket", "user-centric", "SoundCloud"],
+    "isNegativeControl": false
+  },
+  {
+    "id": "q3_dual_sync_licensing",
+    "query": "What two licenses are required for a commercial sync placement in a film or TV show?",
+    "category": "Sync & Licensing",
+    "expectedDocuments": ["music-licensing-and-sync-guide.md"],
+    "expectedKeywords": ["master use license", "synchronization license", "record label", "music publisher"],
+    "isNegativeControl": false
+  },
+  {
+    "id": "q4_isrc_vs_iswc",
+    "query": "What is the difference between an ISRC code and an ISWC code?",
+    "category": "Metadata Standards",
+    "expectedDocuments": ["music-distribution-and-metadata-standards.md"],
+    "expectedKeywords": ["sound recording", "musical composition", "CC-XXX-YY-NNNNN", "T-000000000-C"],
+    "isNegativeControl": false
+  },
+  {
+    "id": "q5_live_touring_deals",
+    "query": "What is the difference between a flat guarantee and a door split in live touring performance contracts?",
+    "category": "Live Touring",
+    "expectedDocuments": ["live-touring-and-performance-contracts.md"],
+    "expectedKeywords": ["flat fee", "ticket sales revenue", "door split", "promoter"],
+    "isNegativeControl": false
+  },
+  {
+    "id": "q6_360_record_deals",
+    "query": "What revenue streams does a record label participate in under a 360 deal?",
+    "category": "Record Label Contracts",
+    "expectedDocuments": ["record-label-deals-and-contracts.md"],
+    "expectedKeywords": ["touring", "merchandise", "sync placement", "master earnings"],
+    "isNegativeControl": false
+  },
+  {
+    "id": "q7_sample_clearance_master_publishing",
+    "query": "What steps are required to legally clear a music sample from both master and publishing owners?",
+    "category": "Copyright & Sampling",
+    "expectedDocuments": ["music-copyright-and-samplers-guide.md"],
+    "expectedKeywords": ["master sample clearance", "publishing sample clearance", "co-writing credit", "royalty split"],
+    "isNegativeControl": false
+  },
+  {
+    "id": "q8_artist_release_timeline",
+    "query": "What tasks must be completed 4 weeks before a music release date?",
+    "category": "Release Rollout",
+    "expectedDocuments": ["artist-onboarding-and-release-checklist.md"],
+    "expectedKeywords": ["distributor upload", "ISRC codes", "PRO registration", "MLC"],
+    "isNegativeControl": false
+  },
+  {
+    "id": "q9_turkish_spotify_lufs",
+    "query": "spotify lufs sınırı kaç ve true peak ceiling ne kadar olmalı?",
     "category": "Turkish / Informal",
-    "expectedDocuments": ["onboarding-new-dev.md"],
-    "expectedKeywords": ["week 1", "senior developer", "shadow delivery", "rebuilds"],
+    "expectedDocuments": ["digital-audio-workstation-and-mastering-specs.md"],
+    "expectedKeywords": ["-14 LUFS", "-1.0 dBTP"],
     "isNegativeControl": false
   },
   {
-    "id": "q2_turkish_local_server",
-    "query": "lumen local server olmadan niye patlıyor productionda?",
+    "id": "q10_turkish_sync_lisans",
+    "query": "dizilerde şarkı kullanmak için hangi iki lisansı almak gerekiyor?",
     "category": "Turkish / Informal",
-    "expectedDocuments": ["network-specs-applovin.md", "qa-checklist.md", "build-pipeline.md"],
-    "expectedKeywords": ["inlined", "base64", "outbound", "runtime"],
+    "expectedDocuments": ["music-licensing-and-sync-guide.md"],
+    "expectedKeywords": ["master use", "synchronization", "sync"],
     "isNegativeControl": false
   },
   {
-    "id": "q3_applovin_size_limit",
-    "query": "What is the maximum file size limit for AppLovin playable ads and how are assets packaged?",
-    "category": "Ad Network Specs",
-    "expectedDocuments": ["network-specs-applovin.md"],
-    "expectedKeywords": ["5 mb", "single-file html", "base64"],
+    "id": "q11_streaming_minimum_threshold",
+    "query": "What is Spotify annual stream minimum threshold to qualify for royalties?",
+    "category": "Streaming Royalties",
+    "expectedDocuments": ["streaming-royalties-and-payouts.md"],
+    "expectedKeywords": ["1,000 annual stream", "royalty pool", "short track"],
     "isNegativeControl": false
   },
   {
-    "id": "q4_unity_meta_packaging",
-    "query": "What is the packaging difference between Unity and Meta playable ads?",
-    "category": "Ad Network Specs",
-    "expectedDocuments": ["network-specs-unity-meta.md"],
-    "expectedKeywords": ["zip", "single html", "index.html"],
+    "id": "q12_interpolation_vs_sampling",
+    "query": "What is the difference between music sampling and musical interpolation?",
+    "category": "Copyright & Sampling",
+    "expectedDocuments": ["music-copyright-and-samplers-guide.md"],
+    "expectedKeywords": ["re-recording", "composition rights", "master licensing fee"],
     "isNegativeControl": false
   },
   {
-    "id": "q5_sdk_v3_migration",
-    "query": "How do I initialize Lumen SDK v3 and why was lumen.track removed?",
-    "category": "SDK & APIs",
-    "expectedDocuments": ["sdk-notes-v3.md"],
-    "expectedKeywords": ["lumen.init", "deprecated", "lumen-sdk@3"],
+    "id": "q13_technical_sound_rider",
+    "query": "What console and monitor specifications belong in a live performance technical rider?",
+    "category": "Live Touring",
+    "expectedDocuments": ["live-touring-and-performance-contracts.md"],
+    "expectedKeywords": ["32-channel digital mixing console", "In-Ear Monitor", "IEM", "stage plot"],
     "isNegativeControl": false
   },
   {
-    "id": "q6_audio_build_pipeline",
-    "query": "Why are sound assets built in a separate pass in the build pipeline?",
-    "category": "Build Pipeline",
-    "expectedDocuments": ["build-pipeline.md"],
-    "expectedKeywords": ["dedicated pass", "nondeterministic", "audio", "size spikes"],
+    "id": "q14_cover_art_metadata_specs",
+    "query": "What are the resolution and format requirements for album cover art uploaded to distributors?",
+    "category": "Metadata Standards",
+    "expectedDocuments": ["music-distribution-and-metadata-standards.md"],
+    "expectedKeywords": ["3000 x 3000 pixels", "1:1 square", "RGB", "JPEG or PNG"],
     "isNegativeControl": false
   },
   {
-    "id": "q7_march_incident_postmortem",
-    "query": "What was the root cause of the March 2026 delivery incident?",
-    "category": "Incident Postmortems",
-    "expectedDocuments": ["incident-postmortem-2026-03.md"],
-    "expectedKeywords": ["audio compression", "pipeline order", "reverted"],
+    "id": "q15_editorial_playlist_pitching",
+    "query": "When must a track be submitted for Spotify editorial playlist pitching?",
+    "category": "Release Rollout",
+    "expectedDocuments": ["artist-onboarding-and-release-checklist.md"],
+    "expectedKeywords": ["Spotify for Artists", "7 days", "21 days", "editorial playlist"],
     "isNegativeControl": false
   },
   {
-    "id": "q8_pre_delivery_qa",
-    "query": "What checks must be passed on the pre-delivery QA checklist?",
-    "category": "QA & Quality",
-    "expectedDocuments": ["qa-checklist.md"],
-    "expectedKeywords": ["orientation", "offline", "file size", "cta"],
-    "isNegativeControl": false
-  },
-  {
-    "id": "q9_localization_languages",
-    "query": "What are the required localization languages and what is the fallback behavior?",
-    "category": "Localization",
-    "expectedDocuments": ["localization-guide.md", "qa-checklist.md"],
-    "expectedKeywords": ["english fallback", "minimum languages"],
-    "isNegativeControl": false
-  },
-  {
-    "id": "q10_onboarding_week_two",
-    "query": "What does a new developer do during their second week?",
-    "category": "Onboarding",
-    "expectedDocuments": ["onboarding-new-dev.md"],
-    "expectedKeywords": ["week 2", "first real ticket", "iteration", "3-day scope"],
-    "isNegativeControl": false
-  },
-  {
-    "id": "q11_staging_cdn_access",
-    "query": "Who has production upload rights vs staging CDN access at Lumen?",
-    "category": "Onboarding & Access",
-    "expectedDocuments": ["onboarding-new-dev.md"],
-    "expectedKeywords": ["staging cdn", "platform team", "producers"],
-    "isNegativeControl": false
-  },
-  {
-    "id": "q12_turkish_audio_compression",
-    "query": "ses dosyaları niye ayrı derleniyor build pipeline'da?",
-    "category": "Turkish / Informal",
-    "expectedDocuments": ["build-pipeline.md"],
-    "expectedKeywords": ["sound assets", "dedicated pass", "audio"],
-    "isNegativeControl": false
-  },
-  {
-    "id": "q13_turkish_applovin_boyut",
-    "query": "applovin boyut kaç mb ve zip mi html mi?",
-    "category": "Turkish / Informal",
-    "expectedDocuments": ["network-specs-applovin.md"],
-    "expectedKeywords": ["5 mb", "single html"],
-    "isNegativeControl": false
-  },
-  {
-    "id": "q14_analytics_taxonomy",
-    "query": "What are the standard analytics events emitted by Lumen playables and when does load_complete fire?",
-    "category": "Analytics & Tracking",
-    "expectedDocuments": ["analytics-events.md"],
-    "expectedKeywords": ["load_complete", "first_interaction", "loop_complete", "cta_click"],
-    "isNegativeControl": false
-  },
-  {
-    "id": "q15_ui_style_guide_cta",
-    "query": "What are the UI style guide rules for buttons, CTA contrast, and progress bars?",
-    "category": "UI & Design Specs",
-    "expectedDocuments": ["style-guide-ui.md"],
-    "expectedKeywords": ["contrast", "4.5:1", "dark scrim", "progress", "20 seconds"],
-    "isNegativeControl": false
-  },
-  {
-    "id": "q16_creative_review_process",
-    "query": "Who runs the delivery review before client release and why is it from a different pod?",
-    "category": "Creative & Review Process",
-    "expectedDocuments": ["guides/review-process.md", "review-process.md"],
-    "expectedKeywords": ["different pod", "two internal reviews", "staging cdn"],
-    "isNegativeControl": false
-  },
-  {
-    "id": "q17_analytics_leak_postmortem",
-    "query": "Why was an AppLovin build rejected in November 2025 and how was the analytics leak fixed?",
-    "category": "Incident Postmortems",
-    "expectedDocuments": ["postmortems/2025-11-analytics-leak.md", "2025-11-analytics-leak.md"],
-    "expectedKeywords": ["debug flag", "outbound request", "analytics buffer"],
-    "isNegativeControl": false
-  },
-  {
-    "id": "q18_negative_control_vacation",
+    "id": "q16_negative_control_vacation",
     "query": "What is the company annual vacation and sick leave policy?",
     "category": "Negative Control (Off-Corpus)",
     "expectedDocuments": [],
@@ -144,7 +128,7 @@
     "isNegativeControl": true
   },
   {
-    "id": "q19_negative_control_salaries",
+    "id": "q17_negative_control_salaries",
     "query": "What are the software engineer salary bands and bonus structures?",
     "category": "Negative Control (Off-Corpus)",
     "expectedDocuments": [],
@@ -152,7 +136,7 @@
     "isNegativeControl": true
   },
   {
-    "id": "q20_negative_control_kubernetes",
+    "id": "q18_negative_control_kubernetes",
     "query": "How do we configure a Kubernetes ingress controller on AWS EKS?",
     "category": "Negative Control (Off-Corpus)",
     "expectedDocuments": [],

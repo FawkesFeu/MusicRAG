@@ -22,7 +22,7 @@ export function Header() {
             </div>
             <div className="flex flex-col">
               <span className="text-sm sm:text-base font-bold tracking-tight text-white">
-                Playable<span className="text-brand-400">RAG</span>
+                Music<span className="text-brand-400">RAG</span>
               </span>
               <span className="hidden sm:inline text-[10px] uppercase tracking-wider text-slate-400">
                 Vector Search Engine

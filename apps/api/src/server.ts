@@ -40,7 +40,7 @@ app.get('/', (req, res) => {
       <html lang="en">
       <head>
         <meta charset="UTF-8">
-        <title>Playable Factory RAG API</title>
+        <title>Music Industry RAG API</title>
         <style>
           body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0B0F17; color: #E2E8F0; padding: 40px 20px; text-align: center; }
           .card { max-width: 600px; margin: 0 auto; background: #111827; border: 1px solid #243049; border-radius: 16px; padding: 32px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
@@ -55,7 +55,7 @@ app.get('/', (req, res) => {
       <body>
         <div class="card">
           <div class="badge">● API Server is Running (Secured)</div>
-          <h1>Playable Factory RAG API</h1>
+          <h1>Music Industry RAG API</h1>
           <p>Express.js + Google Gemini + pgvector Vector Search Engine</p>
           <p>Backend API port: <strong>3001</strong></p>
           <a href="http://localhost:3000" class="btn">Go to Frontend Web App (Port 3000) →</a>
@@ -74,7 +74,7 @@ app.get('/', (req, res) => {
     `);
   } else {
     res.json({
-      name: 'Playable Factory RAG API',
+      name: 'Music Industry RAG API',
       status: 'healthy',
       version: '1.0.0',
       frontendUrl: 'http://localhost:3000',
@@ -123,7 +123,7 @@ if (process.env.NODE_ENV !== 'test') {
   const PORT = env.API_PORT;
   app.listen(PORT, '0.0.0.0', () => {
     console.log(`====================================================`);
-    console.log(`🚀 Playable Factory RAG API running on port ${PORT}`);
+    console.log(`🚀 Music Industry RAG API running on port ${PORT}`);
     console.log(`📡 URL: http://localhost:${PORT}`);
     console.log(`🛡️ Security: Helmet CSP + HSTS + Brute-Force Rate Limiting Active`);
     console.log(`🤖 LLM: Google ${env.GEMINI_MODEL}`);

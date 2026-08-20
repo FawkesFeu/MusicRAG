@@ -2,6 +2,7 @@
   "name": "@rag/shared",
   "version": "1.0.0",
   "private": true,
+  "license": "MIT",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "scripts": {

@@ -8,8 +8,8 @@ describe('MCP Server OIDC Resource Server Authentication', () => {
   let publicJWKS: JSONWebKeySet;
   let oidcService: OidcService;
 
-  const ISSUER = 'https://auth.playablefactory.com/';
-  const AUDIENCE = 'https://mcp.playablefactory.com';
+  const ISSUER = 'https://auth.musicrag.local/';
+  const AUDIENCE = 'https://mcp.musicrag.local';
   const REQUIRED_SCOPE = 'mcp:search';
 
   beforeAll(async () => {
@@ -38,7 +38,7 @@ describe('MCP Server OIDC Resource Server Authentication', () => {
   it('1. Successfully verifies valid OIDC JWT with required scope', async () => {
     const token = await new SignJWT({
       scope: 'mcp:search email profile',
-      email: 'engineer@playablefactory.com',
+      email: 'engineer@musicrag.local',
       name: 'Baran Erol',
     })
       .setProtectedHeader({ alg: 'RS256', kid: 'test-key-1' })
@@ -52,7 +52,7 @@ describe('MCP Server OIDC Resource Server Authentication', () => {
     const user = await oidcService.verifyAccessToken(`Bearer ${token}`);
 
     expect(user.sub).toBe('usr_12345');
-    expect(user.email).toBe('engineer@playablefactory.com');
+    expect(user.email).toBe('engineer@musicrag.local');
     expect(user.scopes).toContain('mcp:search');
     expect(user.issuer).toBe(ISSUER);
     expect(user.audience).toBe(AUDIENCE);

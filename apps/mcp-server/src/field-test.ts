@@ -20,8 +20,8 @@ async function runFieldTest() {
   publicJwk.alg = 'RS256';
   publicJwk.use = 'sig';
 
-  const ISSUER = 'https://auth.playablefactory.com/';
-  const AUDIENCE = 'https://mcp.playablefactory.com';
+  const ISSUER = 'https://auth.musicrag.local/';
+  const AUDIENCE = 'https://mcp.musicrag.local';
 
   // 2. Generate Authorized AI Agent Token
   console.log('🎫 [Step 2: Issuing OIDC Access Token to External AI Agent]');
@@ -30,7 +30,7 @@ async function runFieldTest() {
     agent_id: 'claude-3-5-sonnet-desktop',
     client_name: 'Cursor & Claude MCP Client',
   })
-    .setProtectedHeader({ alg: 'RS256', kid: 'pf-auth-key-2026' })
+    .setProtectedHeader({ alg: 'RS256', kid: 'music-auth-key-2026' })
     .setIssuedAt()
     .setIssuer(ISSUER)
     .setAudience(AUDIENCE)
@@ -80,7 +80,7 @@ async function runFieldTest() {
 
   // 5. Call Tool as Authorized AI Agent
   console.log('\n💬 [Step 5: AI Agent Executing "semantic_search" with OIDC Token]');
-  const query = 'What is the maximum file size limit for AppLovin playable ads and how are assets packaged?';
+  const query = 'What are the integrated LUFS targets and true peak limits for Spotify vs Apple Music?';
   console.log(`  Query: "${query}"`);
 
   const toolCallResult = await client.callTool({
@@ -106,7 +106,7 @@ async function runFieldTest() {
   const unauthorizedToken = await new SignJWT({
     scope: 'mcp:read', // missing mcp:search
   })
-    .setProtectedHeader({ alg: 'RS256', kid: 'pf-auth-key-2026' })
+    .setProtectedHeader({ alg: 'RS256', kid: 'music-auth-key-2026' })
     .setIssuedAt()
     .setIssuer(ISSUER)
     .setAudience(AUDIENCE)
@@ -117,7 +117,7 @@ async function runFieldTest() {
   const blockedResult = await client.callTool({
     name: 'semantic_search',
     arguments: {
-      query: 'What is the AppLovin size limit?',
+      query: 'What is the Spotify LUFS limit?',
       accessToken: unauthorizedToken,
     },
   });

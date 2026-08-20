@@ -19,7 +19,7 @@ export function authMiddleware(req: AuthenticatedRequest, res: Response, next: N
   if (env.MCP_API_TOKEN && token === env.MCP_API_TOKEN) {
     req.user = {
       userId: 'mcp-server-client',
-      email: 'mcp@playablefactory.local',
+      email: 'mcp@musicrag.local',
       role: 'admin',
     };
     return next();

@@ -2,7 +2,7 @@
 setlocal enabledelayedexpansion
 
 echo ====================================================
-echo Playable Factory - RAG Vector Search Platform
+echo Music Industry - RAG Vector Search Platform
 echo ====================================================
 echo.
 

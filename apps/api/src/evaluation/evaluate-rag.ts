@@ -15,52 +15,52 @@ interface TestCase {
 const EVALUATION_TEST_CASES: TestCase[] = [
   {
     id: 1,
-    query: 'What is the maximum file size for an AppLovin playable, and how does it ship?',
-    expectedDocs: ['network-specs-applovin.md'],
+    query: 'What are the integrated LUFS targets and true peak limits for Spotify vs Apple Music?',
+    expectedDocs: ['digital-audio-workstation-and-mastering-specs.md'],
     shouldBeGrounded: true,
-    description: 'AppLovin playable ad specifications & limits (Single HTML, 5MB)',
+    description: 'Mastering specifications & loudness targets (-14 LUFS vs -16 LUFS, -1.0 dBTP)',
   },
   {
     id: 2,
-    query: 'How do I initialize the current Lumen SDK, and what happened to lumen.track?',
-    expectedDocs: ['sdk-notes-v3.md'],
+    query: 'How does the pro-rata streaming royalty model work compared to the user-centric model?',
+    expectedDocs: ['streaming-royalties-and-payouts.md'],
     shouldBeGrounded: true,
-    description: 'Lumen SDK v3 initialization & v2 deprecation check',
+    description: 'Streaming royalty payout models (market share pool vs fan-powered)',
   },
   {
     id: 3,
-    query: 'Why are sound assets built in a separate pass?',
-    expectedDocs: ['build-pipeline.md'],
+    query: 'What two licenses are required for a commercial sync placement in a film or TV show?',
+    expectedDocs: ['music-licensing-and-sync-guide.md'],
     shouldBeGrounded: true,
-    description: 'Build pipeline separate sound asset pass rationale',
+    description: 'Dual sync licensing requirement (Master Use License + Sync Composition License)',
   },
   {
     id: 4,
-    query: 'What caused the March 2026 AppLovin rejections and what was fixed?',
-    expectedDocs: ['incident-postmortem-2026-03.md'],
+    query: 'What is the difference between an ISRC code and an ISWC code?',
+    expectedDocs: ['music-distribution-and-metadata-standards.md'],
     shouldBeGrounded: true,
-    description: 'March 2026 AppLovin rejection root cause & resolution',
+    description: 'Metadata identifiers (ISRC for sound recording vs ISWC for musical composition)',
   },
   {
     id: 5,
-    query: 'Which languages must every playable ship with, and what is the fallback?',
-    expectedDocs: ['localization-guide.md'],
+    query: 'What revenue streams does a record label participate in under a 360 deal?',
+    expectedDocs: ['record-label-deals-and-contracts.md'],
     shouldBeGrounded: true,
-    description: 'Localization required languages and fallback locale',
+    description: 'Multiple rights deal participation (touring, merch, sync, master earnings)',
   },
   {
     id: 6,
-    query: 'What is the build packaging format difference between Unity and Meta playable ads?',
-    expectedDocs: ['network-specs-unity-meta.md'],
+    query: 'What steps are required to legally clear a music sample from both master and publishing owners?',
+    expectedDocs: ['music-copyright-and-samplers-guide.md'],
     shouldBeGrounded: true,
-    description: 'Network Isolation: Unity (ZIP archive) vs Meta (single HTML) no mixing',
+    description: 'Sample clearance workflow (Master Label permission + Publisher split negotiation)',
   },
   {
     id: 7,
-    query: 'Can a new developer own a new-concept delivery during their first week at Lumen?',
-    expectedDocs: ['onboarding-new-dev.md'],
+    query: 'What tasks must be completed 4 weeks before a music release date?',
+    expectedDocs: ['artist-onboarding-and-release-checklist.md'],
     shouldBeGrounded: true,
-    description: 'Conciseness & Onboarding Rule (No, not before fourth week)',
+    description: 'Release rollout timeline (Distributor ingestion, ISRC/ISWC codes, PRO registration)',
   },
   {
     id: 8,
@@ -74,7 +74,7 @@ const EVALUATION_TEST_CASES: TestCase[] = [
 
 export async function runEvaluation() {
   console.log('================================================================================');
-  console.log('🧪 PLAYABLE FACTORY RAG & RETRIEVAL QUALITY EVALUATION SUITE');
+  console.log('🧪 MUSIC INDUSTRY RAG & RETRIEVAL QUALITY EVALUATION SUITE');
   console.log('================================================================================\n');
 
   let retrievalPassed = 0;

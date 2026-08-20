@@ -2,6 +2,7 @@
   "name": "rag-search-app-monorepo",
   "version": "1.0.0",
   "private": true,
+  "license": "MIT",
   "description": "Full-stack TypeScript RAG & Vector Search Monorepo Application",
   "scripts": {
     "dev": "pnpm --filter @rag/api dev",

@@ -6,11 +6,11 @@ import { apiClient } from '../../../lib/api-client';
 import { ChatMessage, MessageItem } from '../../../components/ChatMessage';
 
 const SAMPLE_QUESTIONS = [
-  'What is the maximum file size for an AppLovin playable, and how does it ship?',
-  'How do I initialize the current Lumen SDK, and what happened to lumen.track?',
-  'Why are sound assets built in a separate pass?',
-  'What caused the March 2026 AppLovin rejections and what was fixed?',
-  'Which languages must every playable ship with, and what is the fallback?',
+  'What are the integrated LUFS targets and true peak limits for Spotify vs Apple Music?',
+  'How does the pro-rata streaming royalty model work compared to the user-centric model?',
+  'What two licenses are required for a commercial sync placement in a film or TV show?',
+  'What is the difference between an ISRC code and an ISWC code?',
+  'What revenue streams does a record label participate in under a 360 deal?',
   'What is the company vacation and salary policy?',
 ];
 
@@ -287,9 +287,9 @@ export default function ChatPage() {
                 <MessageSquare className="h-6 w-6 sm:h-8 sm:w-8" />
               </div>
               <div className="max-w-md space-y-1.5">
-                <h3 className="text-base sm:text-lg font-bold text-white">Ask Anything About Playables</h3>
+                <h3 className="text-base sm:text-lg font-bold text-white">Ask Anything About Music Industry & Audio Specs</h3>
                 <p className="text-xs leading-relaxed text-slate-400">
-                  Search across network specs, SDK guidelines, build pipelines, postmortems, and release notes. Every answer is grounded with source citations.
+                  Search across streaming royalties, sync licensing, DAW specs, metadata standards, label contracts, and copyright clearance. Every answer is grounded with source citations.
                 </p>
               </div>
 
@@ -297,7 +297,7 @@ export default function ChatPage() {
               <div className="w-full max-w-2xl space-y-2 pt-2 sm:pt-4">
                 <p className="text-[10px] sm:text-[11px] font-semibold uppercase tracking-wider text-slate-500 flex items-center justify-center gap-1.5">
                   <HelpCircle className="h-3.5 w-3.5 text-brand-400" />
-                  Recommended Sample Queries from Case Study
+                  Recommended Sample Queries from Corpus
                 </p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-left">
                   {SAMPLE_QUESTIONS.map((q, idx) => (
@@ -347,7 +347,7 @@ export default function ChatPage() {
               type="text"
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder="Ask a question about the corpus (e.g., AppLovin specs, Lumen SDK v3)..."
+              placeholder="Ask a question about the corpus (e.g., Spotify LUFS, sync licenses, ISRC codes)..."
               disabled={loading}
               className="flex-1 rounded-xl sm:rounded-2xl border border-dark-border bg-dark-bg/80 px-3.5 py-2.5 sm:px-5 sm:py-3.5 text-xs sm:text-sm text-white placeholder-slate-500 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500 transition"
             />

@@ -141,8 +141,8 @@ function RegisterForm() {
         </h1>
         <p className="text-xs text-slate-400">
           {invitedRole
-            ? 'Complete your profile to access Playable Factory RAG'
-            : 'Join Playable Factory Vector Search Platform'}
+            ? 'Complete your profile to access Music Industry RAG'
+            : 'Join Music Industry Vector Search Platform'}
         </p>
       </div>
 

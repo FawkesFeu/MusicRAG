@@ -1,8 +1,8 @@
-# PowerShell Başlatma Scripti - Playable Factory RAG Platform
-$Host.UI.RawUI.WindowTitle = "Playable Factory RAG Platform"
+# PowerShell Başlatma Scripti - Music Industry RAG Platform
+$Host.UI.RawUI.WindowTitle = "Music Industry RAG Platform"
 
 Write-Host "====================================================" -ForegroundColor Cyan
-Write-Host "🚀 Playable Factory - RAG Vector Search Platform" -ForegroundColor Yellow
+Write-Host "🚀 Music Industry - RAG Vector Search Platform" -ForegroundColor Yellow
 Write-Host "====================================================" -ForegroundColor Cyan
 Write-Host ""
 

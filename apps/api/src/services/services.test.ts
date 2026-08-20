@@ -28,13 +28,13 @@ describe('Auth Service', () => {
 
 describe('Chunking Service', () => {
   it('detects headings and sections from markdown', () => {
-    const md = `# Overview\nThis is an introduction.\n\n## Network Specs\nAppLovin specifications.`;
+    const md = `# Overview\nThis is an introduction.\n\n## Technical Specs\nMastering specifications.`;
     expect(detectHeading(md)).toBe('Overview');
     expect(detectSection(md)).toBe('Overview');
   });
 
   it('splits long content into chunks with semantic boundary preservation', () => {
-    const paragraphs = Array.from({ length: 20 }, (_, i) => `Paragraph ${i + 1}: Playable ads require strict bundle limits under 5MB.`).join('\n\n');
+    const paragraphs = Array.from({ length: 20 }, (_, i) => `Paragraph ${i + 1}: Spotify target loudness is -14 LUFS with -1.0 dBTP ceiling.`).join('\n\n');
     const chunks = chunkDocument(paragraphs, { maxChunkSize: 50, overlapSize: 10 });
     expect(chunks.length).toBeGreaterThan(1);
     expect(chunks[0].tokens).toBeLessThanOrEqual(50);
@@ -43,22 +43,22 @@ describe('Chunking Service', () => {
 
 describe('RAG & Citations', () => {
   it('extracts source citations correctly from generated text', () => {
-    const answer = 'According to [Source 1], AppLovin maximum file size is 5MB. Also note [Source 2] for sounds.';
+    const answer = 'According to [Source 1], Spotify integrated target loudness is -14 LUFS. Also note [Source 2] for sync licenses.';
     const mockChunks = [
       {
         chunkId: 'c1',
         documentId: 'd1',
-        documentTitle: 'Network Specs AppLovin',
-        filename: 'network-specs-applovin.md',
-        content: 'Max size 5MB',
+        documentTitle: 'DAW Mastering Specs',
+        filename: 'digital-audio-workstation-and-mastering-specs.md',
+        content: 'Spotify target -14 LUFS',
         similarity: 0.95,
       },
       {
         chunkId: 'c2',
         documentId: 'd2',
-        documentTitle: 'Build Pipeline',
-        filename: 'build-pipeline.md',
-        content: 'Sound asset compression pass',
+        documentTitle: 'Music Sync Guide',
+        filename: 'music-licensing-and-sync-guide.md',
+        content: 'Master and publishing sync licenses',
         similarity: 0.88,
       },
     ];
@@ -66,9 +66,9 @@ describe('RAG & Citations', () => {
     const citations = extractCitations(answer, mockChunks);
     expect(citations.length).toBe(2);
     expect(citations[0].sourceIndex).toBe(1);
-    expect(citations[0].filename).toBe('network-specs-applovin.md');
+    expect(citations[0].filename).toBe('digital-audio-workstation-and-mastering-specs.md');
     expect(citations[1].sourceIndex).toBe(2);
-    expect(citations[1].filename).toBe('build-pipeline.md');
+    expect(citations[1].filename).toBe('music-licensing-and-sync-guide.md');
   });
 
   it('contains strict grounding rules in system instructions', () => {
@@ -90,87 +90,87 @@ describe('RAG & Citations', () => {
 
 describe('Query Rewriter Service', () => {
   it('returns query gracefully when given search question', async () => {
-    const query = 'What is the maximum file size for AppLovin?';
+    const query = 'What is the recommended LUFS target for Spotify?';
     const result = await queryRewriterService.rewrite(query);
     expect(result.length).toBeGreaterThan(0);
   });
 });
 
 describe('Reranker Service', () => {
-  it('prioritizes AppLovin specific chunks for AppLovin questions', async () => {
-    const query = 'What is the AppLovin playable file size?';
+  it('prioritizes DAW mastering chunks for LUFS questions', async () => {
+    const query = 'What is the Spotify target LUFS loudness limit?';
     const candidates = [
       {
         chunkId: 'c1',
         documentId: 'd1',
-        documentTitle: 'Network Specs Unity',
-        filename: 'network-specs-unity.md',
-        content: 'Unity playable ads size limit is 10MB.',
+        documentTitle: 'Live Touring Contracts',
+        filename: 'live-touring-and-performance-contracts.md',
+        content: 'Technical rider requires 32 channel console.',
         similarity: 0.82,
       },
       {
         chunkId: 'c2',
         documentId: 'd2',
-        documentTitle: 'Network Specs AppLovin',
-        filename: 'network-specs-applovin.md',
-        content: 'AppLovin playable ads maximum bundle size is 5MB.',
+        documentTitle: 'DAW & Mastering Specs',
+        filename: 'digital-audio-workstation-and-mastering-specs.md',
+        content: 'Spotify target loudness is -14 LUFS with -1.0 dBTP ceiling.',
         similarity: 0.80,
       },
     ];
 
     const reranked = await rerankerService.rerank(query, query, candidates, 1);
-    expect(reranked[0].filename).toBe('network-specs-applovin.md');
+    expect(reranked[0].filename).toBe('digital-audio-workstation-and-mastering-specs.md');
   });
 
-  it('prioritizes SDK v3 over deprecated v2 for current SDK questions', async () => {
-    const query = 'How do I initialize the current Lumen SDK?';
+  it('prioritizes sync guide for licensing questions', async () => {
+    const query = 'What licenses are needed for film sync placement?';
     const candidates = [
       {
         chunkId: 'c1',
         documentId: 'd1',
-        documentTitle: 'SDK Notes v2 (Deprecated)',
-        filename: 'sdk-notes-v2.md',
-        content: 'Lumen SDK v2 initialize with lumen.track.',
+        documentTitle: 'Record Label Deals',
+        filename: 'record-label-deals-and-contracts.md',
+        content: 'Major label advances and recoupment.',
         similarity: 0.85,
       },
       {
         chunkId: 'c2',
         documentId: 'd2',
-        documentTitle: 'SDK Notes v3 (Current)',
-        filename: 'sdk-notes-v3.md',
-        content: 'Lumen SDK v3 initialization method lumen.init().',
+        documentTitle: 'Music Licensing and Sync Guide',
+        filename: 'music-licensing-and-sync-guide.md',
+        content: 'Securing sync placement requires Master Use License and Sync License.',
         similarity: 0.83,
       },
     ];
 
     const reranked = await rerankerService.rerank(query, query, candidates, 1);
-    expect(reranked[0].filename).toBe('sdk-notes-v3.md');
+    expect(reranked[0].filename).toBe('music-licensing-and-sync-guide.md');
   });
 
-  it('prioritizes onboarding documents for Turkish new dev questions', async () => {
-    const originalQuery = 'new dev ilk hafta ne yapıyor lumen\'da, bunu kim kontrol ediyor?';
-    const effectiveQuery = 'What does a new developer do during their first week at Lumen and who reviews the work?';
+  it('prioritizes streaming royalties for Turkish royalty questions', async () => {
+    const originalQuery = 'spotify telif oranları nasıl hesaplanıyor?';
+    const effectiveQuery = 'How are Spotify streaming royalties calculated?';
     const candidates = [
       {
         chunkId: 'c1',
         documentId: 'd1',
-        documentTitle: 'Company Overview',
-        filename: 'company-overview.md',
-        content: 'Playable Factory develops high performance playable ads.',
+        documentTitle: 'Copyright Guide',
+        filename: 'music-copyright-and-samplers-guide.md',
+        content: 'Circle C and Circle P copyright definitions.',
         similarity: 0.75,
       },
       {
         chunkId: 'c2',
         documentId: 'd2',
-        documentTitle: 'Onboarding: New Developer',
-        filename: 'onboarding-new-dev.md',
-        content: 'Week 1: environment setup and shadow delivery reviewed by pod senior developer.',
+        documentTitle: 'Streaming Royalties and Payouts',
+        filename: 'streaming-royalties-and-payouts.md',
+        content: 'Spotify operates on a pro-rata market share royalty model.',
         similarity: 0.72,
       },
     ];
 
     const reranked = await rerankerService.rerank(originalQuery, effectiveQuery, candidates, 1);
-    expect(reranked[0].filename).toBe('onboarding-new-dev.md');
+    expect(reranked[0].filename).toBe('streaming-royalties-and-payouts.md');
   });
 
   it('enforces document diversity (maximum 2 chunks per document in top results)', async () => {

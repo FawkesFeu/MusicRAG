@@ -14,32 +14,32 @@ export interface QueryAnalysis {
   mustHaveConcepts?: string[];
 }
 
-const DECOMPOSER_SYSTEM_INSTRUCTION = `You are an expert search query analyzer and intent decomposer for a software engineering knowledge base (Playable Factory / Lumen game studio).
+const DECOMPOSER_SYSTEM_INSTRUCTION = `You are an expert search query analyzer and intent decomposer for a music industry and audio technology knowledge base.
 
 TASK:
 Analyze the user query and output a valid JSON object:
 {
   "canonicalQuery": "Clean search query with Turkish/slang normalized to English.",
-  "domain": "build_pipeline | ad_network_specs | onboarding_access | sdk_api | qa_runtime | incident_postmortem | localization | off_corpus",
+  "domain": "streaming_royalties | music_licensing | mastering_specs | metadata_standards | live_touring | label_contracts | copyright_sampling | release_rollout | off_corpus",
   "subQueries": ["Sub-intent 1", "Sub-intent 2"],
   "keywords": ["lexical term 1", "lexical term 2"],
   "mustHaveConcepts": ["mandatory concept 1", "mandatory concept 2"]
 }
 
 EXAMPLES:
-- "ses dosyaları niye ayrı derleniyor build pipeline'da?" -> {
-    "canonicalQuery": "Why are sound assets built in a separate pass in the build pipeline?",
-    "domain": "build_pipeline",
-    "subQueries": ["Why are sound assets built separately in the build pipeline?", "dedicated audio pass in lumen-build"],
-    "keywords": ["sound assets", "audio pass", "separate pass", "build pipeline", "lumen-build"],
-    "mustHaveConcepts": ["sound assets", "separate pass"]
+- "spotify lufs sınırı kaç ve true peak ne olmalı?" -> {
+    "canonicalQuery": "What is Spotify target LUFS ceiling and true peak limit?",
+    "domain": "mastering_specs",
+    "subQueries": ["What is the Spotify integrated LUFS target?", "What is the recommended true peak ceiling for Spotify masters?"],
+    "keywords": ["Spotify LUFS", "integrated loudness", "true peak", "dBTP", "mastering"],
+    "mustHaveConcepts": ["Spotify", "LUFS", "true peak"]
   }
-- "Who has production upload rights vs staging CDN access at Lumen?" -> {
-    "canonicalQuery": "Who has production upload rights vs staging CDN access at Lumen?",
-    "domain": "onboarding_access",
-    "subQueries": ["Who has production upload rights at Lumen?", "Who has staging CDN access at Lumen?"],
-    "keywords": ["staging CDN", "production upload", "Platform team", "producers", "access rights"],
-    "mustHaveConcepts": ["staging CDN", "production upload"]
+- "Who owns master use rights vs publishing sync rights?" -> {
+    "canonicalQuery": "Who owns master use rights vs publishing sync rights in music licensing?",
+    "domain": "music_licensing",
+    "subQueries": ["Who grants master use rights?", "Who grants sync publishing rights?"],
+    "keywords": ["master use license", "sync license", "record label", "music publisher", "licensing"],
+    "mustHaveConcepts": ["master use", "sync license"]
   }
 - "What are the software engineer salary bands and bonus structures?" -> {
     "canonicalQuery": "What are the software engineer salary bands and bonus structures?",

@@ -1,18 +1,18 @@
 # AI Usage & Engineering Log
 
-This document records the interactions, architectural decisions, and error corrections made during the development of the Playable Factory RAG & Vector Search application, in accordance with Section 4 & 7 of the Case Study specification.
+This document records the interactions, architectural decisions, and error corrections made during the development of the Music Industry RAG & Vector Search application.
 
 ---
 
 ## 1. Overview of AI Assistance
 
 AI (Google Antigravity Agentic Pair Programmer with Gemini) was utilized collaboratively as a development accelerator for:
-1. **Architecture Planning & Refinement**: Analyzing case study requirements from `PlayableFactory_AI_SE_Case_RAG.pdf`, structuring a scalable TypeScript monorepo layout, and implementing the design using Express.js + Next.js 14 App Router + PostgreSQL 16 (pgvector) + Redis 7 (BullMQ).
+1. **Architecture Planning & Refinement**: Structuring a scalable TypeScript monorepo layout, and implementing the design using Express.js + Next.js 14 App Router + PostgreSQL 16 (pgvector) + Redis 7 (BullMQ).
 2. **Schema & Data Modeling**: Defining type-safe Drizzle ORM schemas for relational tables with `vector(768)` embedding columns and HNSW vector indexing.
 3. **Core Services Implementation**: Writing the recursive semantic chunking algorithm with boundary awareness (`js-tiktoken`), Google Gemini `gemini-embedding-001` (768-dim) embedding adapter, and Gemini grounded prompt engineering.
 4. **Interactive Frontend Surfaces**: Creating the Chat interface with interactive citation modals and the Admin Operations Dashboard with telemetry charts, live document management, and User Management.
 5. **Model Context Protocol (MCP)**: Structuring the standalone stdio and HTTP MCP server for tool integration with Claude Desktop / Cursor, secured with OpenID Connect (OIDC) authentication.
-6. **Automated Evaluation Suite**: Building the multi-dimensional benchmark runner testing grounding, citation accuracy, network isolation, and negative abstention across 20 empirical scenarios.
+6. **Automated Evaluation Suite**: Building the multi-dimensional benchmark runner testing grounding, citation accuracy, domain isolation, and negative abstention across empirical scenarios.
 
 ---
 
@@ -75,9 +75,13 @@ During the automated build, integration, and testing cycles, several real-world 
   2. **Admin API & UI**: Admins can generate shareable invitation links (`/register?inviteToken=...`) with custom roles (`user` / `admin`) and validity periods, copy links with one-click clipboard feedback, and view/revoke pending invitations in real-time.
   3. **Invitation Acceptance Page**: When invited users access their unique link, their email and role are verified and locked, prompting them to set their password with live security checks and seamlessly logging them into the platform.
 
-### Issue 11: Bilingual Language Concordance & Grounding Preservation
-- **Problem**: Turkish queries were translated to canonical English for vector retrieval against the English corpus, but the resulting answer was generated in English rather than the user's input language.
-- **Resolution**: Added Rule 6 (`LANGUAGE CONCORDANCE`) to the RAG system prompt: the AI grounds facts strictly on the retrieved English context while expressing the answer in the exact language the user queried in (e.g. professional Turkish for Turkish queries, English for English queries), while preserving verifiable `[Source X]` citations.
+### Issue 12: Transition to Music Industry Corpus & Open Source Licensing
+- **Problem**: The project dataset needed to be updated from game studio documentation to a comprehensive Music Industry corpus, purging all previous company branding and updating project licenses.
+- **Resolution**:
+  1. **New Music Industry Dataset**: Created 8 detailed technical Markdown documents covering Streaming Royalties, Sync Licensing, DAW & Mastering specs (LUFS, True Peak), Metadata standards (ISRC, ISWC, UPC), Live Touring contracts, 360 Label Deals, Sample Clearances, and Release Checklists.
+  2. **System Prompt & Reranker Updates**: Re-aligned `ragService`, `rerankerService`, and `queryRewriterService` system instructions and domain boosts to the Music Industry knowledge domain.
+  3. **Evaluation & Test Re-alignment**: Updated benchmark queries (`benchmark-queries.json`) and unit tests (`services.test.ts`, `evaluate-rag.ts`, `oidc.test.ts`) to validate Music Industry retrieval.
+  4. **Open Source Licensing**: Created root `LICENSE` file under the MIT License and set `"license": "MIT"` across all monorepo `package.json` files.
 
 ---
 
